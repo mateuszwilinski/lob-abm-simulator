@@ -25,6 +25,8 @@ Manifest.toml
 
 # Experimental folders
 /bash/
+/plots/
+/data/
 
 # Notebooks related files
 /notebooks/
