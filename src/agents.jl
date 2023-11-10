@@ -1,6 +1,6 @@
 
 abstract type Agent end
 
-struct Trader
+struct Trader <: Agent
     id::Int64
 end
