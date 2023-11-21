@@ -3,8 +3,10 @@ abstract type Agent end
 
 struct Trader <: Agent
     id::Int64
+    orders::OrderedSet{Int64}
 end
 
-struct NoiseTrades <: Agent
+struct NoiseTrader <: Agent
     id::Int64
+    orders::OrderedSet{Int64}
 end
