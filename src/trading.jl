@@ -1,4 +1,9 @@
 
+"""
+    wake_up!(agent, book, sup_id; market=true, limit=true, cancel=true)
+
+Activate an agent, trade or cancel an existing trade and send a new message.
+"""
 function wake_up!(agent::NoiseTrader, book::Book, sup_id::Int64;
                   market::Bool=true, limit::Bool=true, cancel::Bool=true)
     if market
@@ -25,6 +30,11 @@ function wake_up!(agent::NoiseTrader, book::Book, sup_id::Int64;
     #       so that it can wake up the agent again.
 end
 
+"""
+    cancel_order!(order_id, book)
+
+Delete order with id equal to "order_id" from the "book".
+"""
 function cancel_order!(order_id::Int64, book::Book)
     if book.orders[order_id].is_bid
         delete!(book.bids[book.orders[order_id].price], book.orders[order_id])
@@ -34,7 +44,13 @@ function cancel_order!(order_id::Int64, book::Book)
     delete!(book.orders, order_id)
 end
 
-function modify_order!(order_id::Int64, new_size::Book)
+"""
+    modify_order!(order_id, new_size, book)
+
+For the order with id equal to "order_id" in the "book", change order's size
+into "new_size".
+"""
+function modify_order!(order_id::Int64, new_size::Int64, book::Book)
     if book.orders[order_id].is_bid
         delete!(book.bids[book.orders[order_id].price], book.orders[order_id])
         push!(book.bids[book.orders[order_id].price], book.orders[order_id])
