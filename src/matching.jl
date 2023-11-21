@@ -70,16 +70,18 @@ function add_order!(book::Book, order::MarketOrder)
 end
 
 """
-    match_order!(book_level, order)
+    match_order!(book_level, order, book)
 
 Matches "order" (market or limit) to a specific
-"book_level". Note that at this point there are
-no checks whether the level is on the correct
-side and has the correct price.
+"book_level" in a "book". Note that at this point
+there are no checks whether the level is on the
+correct side and has the correct price.
 """
-function match_order!(book_level::OrderedSet, order::Order, book::Book)
+function match_order!(book_level::OrderedSet{LimitOrder},
+                      order::Order, book::Book)
     for o in book_level
         if o.size[] == order.size[]
+            inform_agent!()
             delete!(book_level, o)
             delete!(book.orders, o.id)
             order.size[] = 0
@@ -103,7 +105,8 @@ Places an "order" on "book_side". Note that
 at this point there are no checks on whether
 the side is correct.
 """
-function place_order!(book_side::Dict{Float64, OrderedSet}, order::LimitOrder)
+function place_order!(book_side::Dict{Float64, OrderedSet{LimitOrder}},
+                      order::LimitOrder)
     if !haskey(book_side, order.price)
         book_side[order.price] = OrderedSet()
     end
