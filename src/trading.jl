@@ -27,7 +27,7 @@ function wake_up!(agent::NoiseTrader, book::Book, sup_id::Int64;
     end
 
     # TODO: Probably you need to generate a message to the simulation here,
-    #       so that it can wake up the agent again.
+    #       so that it can wake up the agent again. (!!!)
 end
 
 """
