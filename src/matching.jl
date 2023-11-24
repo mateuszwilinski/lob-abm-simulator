@@ -7,7 +7,7 @@ Adds "order" (limit order) to the "book".
 function add_order!(book::Book, order::LimitOrder)
     if order.is_bid
         if order.price >= book.best_ask
-            match_order!(book.asks[book.best_ask], order)
+            match_order!(book.asks[book.best_ask], order, book)
             if isempty(book.asks[book.best_ask])
                 delete!(book.asks, book.best_ask)
                 update_best_ask!(book)
@@ -17,13 +17,14 @@ function add_order!(book::Book, order::LimitOrder)
             end
         else
             place_order!(book.bids, order)
+            book.orders[order.id] = order
             if !(order.price <= book.best_bid)  # This form is in case of best_bid==NaN
                 update_best_ask!(book)
             end
         end
     else
         if order.price <= book.best_bid
-            match_order!(book.bids[book.best_bid], order)
+            match_order!(book.bids[book.best_bid], order, book)
             if isempty(book.bids[book.best_bid])
                 delete!(book.bids, book.best_bid)
                 update_best_bid!(book)
@@ -33,6 +34,7 @@ function add_order!(book::Book, order::LimitOrder)
             end
         else
             place_order!(book.asks, order)
+            book.orders[order.id] = order
             if !(order.price >= book.best_ask)  # This form is in case of best_ask==NaN
                 update_best_ask!(book)
             end
@@ -47,7 +49,7 @@ Adds "order" (market order) to the "book".
 """
 function add_order!(book::Book, order::MarketOrder)
     if order.is_bid
-        match_order!(book.asks[book.best_ask], order)
+        match_order!(book.asks[book.best_ask], order, book)
         if isempty(book.asks[book.best_ask])
             delete!(book.asks, book.best_ask)
             update_best_ask!(book)
@@ -56,7 +58,7 @@ function add_order!(book::Book, order::MarketOrder)
             add_order!(book, order)
         end
     else
-        match_order!(book.bids[book.best_bid], order)
+        match_order!(book.bids[book.best_bid], order, book)
         if isempty(book.bids[book.best_bid])
             delete!(book.bids, book.best_bid)
             update_best_bid!(book)
@@ -68,17 +70,20 @@ function add_order!(book::Book, order::MarketOrder)
 end
 
 """
-    match_order!(book_level, order)
+    match_order!(book_level, order, book)
 
 Matches "order" (market or limit) to a specific
-"book_level". Note that at this point there are
-no checks whether the level is on the correct
-side and has the correct price.
+"book_level" in a "book". Note that at this point
+there are no checks whether the level is on the
+correct side and has the correct price.
 """
-function match_order!(book_level::OrderedSet, order::Order)
+function match_order!(book_level::OrderedSet{LimitOrder},
+                      order::Order, book::Book)
     for o in book_level
         if o.size[] == order.size[]
+            inform_agent!()
             delete!(book_level, o)
+            delete!(book.orders, o.id)
             order.size[] = 0
             break
         elseif o.size[] > order.size[]
@@ -87,6 +92,7 @@ function match_order!(book_level::OrderedSet, order::Order)
             break
         else
             delete!(book_level, o)
+            delete!(book.orders, o.id)
             order.size[] -= o.size[]
         end
     end
@@ -99,7 +105,8 @@ Places an "order" on "book_side". Note that
 at this point there are no checks on whether
 the side is correct.
 """
-function place_order!(book_side::Dict{Float64, OrderedSet}, order::LimitOrder)
+function place_order!(book_side::Dict{Float64, OrderedSet{LimitOrder}},
+                      order::LimitOrder)
     if !haskey(book_side, order.price)
         book_side[order.price] = OrderedSet()
     end

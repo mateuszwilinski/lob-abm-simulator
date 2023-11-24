@@ -35,4 +35,9 @@ LimitOrder(
     symbol::String
     ) = LimitOrder(price, Ref(size), is_bid, id, agent, symbol)
 
+"""
+    get_size(o)
+
+Return size of order "o".
+"""
 get_size(o::Order) = o.size[]
