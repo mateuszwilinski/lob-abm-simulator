@@ -26,7 +26,7 @@ function wake_up!(agent::NoiseTrader, book::Book, sup_id::Int64;
         cancel_order!(order_id, book)
     end
 
-    # TODO: Probably you need to generate a message to the simulation here,
+    # TODO: You need to generate a message to the simulation here,
     #       so that it can wake up the agent again. (!!!)
 end
 
