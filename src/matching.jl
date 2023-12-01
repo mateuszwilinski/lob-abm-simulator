@@ -81,7 +81,6 @@ function match_order!(book_level::OrderedSet{LimitOrder},
                       order::Order, book::Book)
     for o in book_level
         if o.size[] == order.size[]
-            inform_agent!()
             delete!(book_level, o)
             delete!(book.orders, o.id)
             order.size[] = 0
