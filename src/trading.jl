@@ -41,6 +41,9 @@ function wake_up!(agent::NoiseTrader, book::Book, params::Dict, msg::Dict)
         side = rand(Bool)
         size = 1
         price = mid_price(book) + randn() * agent.sigma
+        if isnan(price)
+            price = params["fundamental_price"]
+        end
         order = LimitOrder(price, size, side, sup_id+1, agent.id, book.symbol)
         add_order!(book, order)
         push!(agent.orders, order.id)
