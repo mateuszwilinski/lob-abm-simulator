@@ -38,6 +38,7 @@ function wake_up!(agent::NoiseTrader, book::Book, params::Dict, msg::Dict)
         order = MarketOrder(size, side, sup_id+1, agent.id, book.symbol)
         add_order!(book, order)
         push!(agent.orders, order.id)
+        params["ord_id"] += 1
 
         rate = agent.limit_rate
     elseif msg["action"] == "limit_order"
@@ -50,6 +51,7 @@ function wake_up!(agent::NoiseTrader, book::Book, params::Dict, msg::Dict)
         order = LimitOrder(price, size, side, sup_id+1, agent.id, book.symbol)
         add_order!(book, order)
         push!(agent.orders, order.id)
+        params["ord_id"] += 1
 
         rate = agent.market_rate
     elseif msg["action"] == "cancel_order"
