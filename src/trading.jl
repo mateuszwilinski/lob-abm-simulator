@@ -1,6 +1,6 @@
 
 """
-    initiate!(agent, book, sup_id)
+    initiate!(agent, book, params)
 
 Initiate NoiseTrader "agent" on the "book", for simulation with "params".
 """
@@ -11,9 +11,12 @@ function initiate!(agent::NoiseTrader, book::Book, params::Dict)
     lmt_msg = copy(mrkt_msg)
     cncl_msg = copy(mrkt_msg)
 
-    mrkt_msg["activation_time"] = ceil(Int64, rand(Exponential(agent.market_rate)))
-    lmt_msg["activation_time"] = ceil(Int64, rand(Exponential(agent.limit_rate)))
-    cncl_msg["activation_time"] = ceil(Int64, rand(Exponential(agent.cancel_rate)))
+    mrkt_msg["activation_time"] = ceil(Int64, params["initial_time"] +
+                                       rand(Exponential(agent.market_rate)))
+    lmt_msg["activation_time"] = ceil(Int64, params["initial_time"] +
+                                      rand(Exponential(agent.limit_rate)))
+    cncl_msg["activation_time"] = ceil(Int64, params["initial_time"] +
+                                       rand(Exponential(agent.cancel_rate)))
 
     mrkt_msg["action"] = "market_order"
     lmt_msg["action"] = "limit_order"
