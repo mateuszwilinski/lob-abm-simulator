@@ -1,4 +1,6 @@
 
+import Distributions: Exponential
+
 """
     initiate!(agent, book, params)
 
@@ -26,21 +28,20 @@ function initiate!(agent::NoiseTrader, book::Book, params::Dict)
 end
 
 """
-    wake_up!(agent, book, sup_id; market=true, limit=true, cancel=true)
+    wake_up!(agent, book, orders, params, msg)
 
 Activate an agent, trade or cancel an existing trade and send a new message.
 """
-function wake_up!(agent::NoiseTrader, book::Book, params::Dict, msg::Dict)
-    sup_id = params["ord_id"]
+function action!(agent::NoiseTrader, book::Book, orders::Dict{Int64, LimitOrder},
+                 params::Dict, msg::Dict)
     if msg["action"] == "market_order"
         side = rand(Bool)
         size = 1
-        order = MarketOrder(size, side, sup_id+1, agent.id, book.symbol)
-        add_order!(book, order)
-        push!(agent.orders, order.id)
         params["ord_id"] += 1
+        order = MarketOrder(size, side, params["ord_id"], agent.id, book.symbol)
+        add_order!(book, order)
 
-        rate = agent.limit_rate
+        rate = agent.market_rate
     elseif msg["action"] == "limit_order"
         side = rand(Bool)
         size = 1
@@ -48,52 +49,62 @@ function wake_up!(agent::NoiseTrader, book::Book, params::Dict, msg::Dict)
         if isnan(price)
             price = params["fundamental_price"]
         end
-        order = LimitOrder(price, size, side, sup_id+1, agent.id, book.symbol)
-        add_order!(book, order)
-        push!(agent.orders, order.id)
         params["ord_id"] += 1
+        order = LimitOrder(price, size, side, params["ord_id"], agent.id, book.symbol)
+        add_order!(book, order)
+        orders[order.id] = order
+        if get_size(order) > 0  # TODO: Should it be done here or in "add_order!" function?
+            push!(agent.orders, order.id)
+            orders[order.id] = order
+        end
 
-        rate = agent.market_rate
+        rate = agent.limit_rate
     elseif msg["action"] == "cancel_order"
-        order_id = rand(agent.orders)
-        cancel_order!(order_id, book)
+        if !isempty(agent.orders)
+            order_id = rand(agent.orders)
+            cancel_order!(order_id, book, orders)
+            delete!(agent.orders, order_id)
+        end
 
         rate = agent.cancel_rate
     end
 
     activation_time_diff = ceil(Int64, rand(Exponential(rate)))
-    new_msg = copy(msg)
-    new_msg["activation_time"] = msg["activation_time"] + activation_time_diff
-    return (new_msg,)
+    response = copy(msg)
+    response["activation_time"] = msg["activation_time"] + activation_time_diff
+    msgs = Vector{Dict}()
+    push!(msgs, response)
+    return msgs
 end
 
 """
-    cancel_order!(order_id, book)
+    cancel_order!(order_id, book, orders)
 
-Delete order with id equal to "order_id" from the "book".
+Delete order with id equal to "order_id" from the "book" and the "orders".
 """
-function cancel_order!(order_id::Int64, book::Book)
-    if book.orders[order_id].is_bid
-        delete!(book.bids[book.orders[order_id].price], book.orders[order_id])
+function cancel_order!(order_id::Int64, book::Book, orders::Dict{Int64, LimitOrder})
+    if orders[order_id].is_bid
+        delete!(book.bids[orders[order_id].price], orders[order_id])
     else
-        delete!(book.asks[book.orders[order_id].price], book.orders[order_id])
+        delete!(book.asks[orders[order_id].price], orders[order_id])
     end
-    delete!(book.orders, order_id)
+    delete!(orders, order_id)
 end
 
 """
-    modify_order!(order_id, new_size, book)
+    modify_order!(order_id, new_size, book, orders)
 
-For the order with id equal to "order_id" in the "book", change order's size
-into "new_size".
+For the order with id equal to "order_id" in the "book" and the "orders",
+change order's size into "new_size".
 """
-function modify_order!(order_id::Int64, new_size::Int64, book::Book)
-    if book.orders[order_id].is_bid
-        delete!(book.bids[book.orders[order_id].price], book.orders[order_id])
-        push!(book.bids[book.orders[order_id].price], book.orders[order_id])
+function modify_order!(order_id::Int64, new_size::Int64, book::Book,
+                       orders::Dict{Int64, LimitOrder})
+    if orders[order_id].is_bid
+        delete!(book.bids[orders[order_id].price], orders[order_id])
+        push!(book.bids[orders[order_id].price], orders[order_id])
     else
-        delete!(book.asks[book.orders[order_id].price], book.orders[order_id])
-        push!(book.asks[book.orders[order_id].price], book.orders[order_id])
+        delete!(book.asks[orders[order_id].price], orders[order_id])
+        push!(book.asks[orders[order_id].price], orders[order_id])
     end
-    book.orders[order_id] = new_size
+    orders[order_id] = new_size
 end
