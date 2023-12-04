@@ -25,8 +25,8 @@ function main()
 
     # Build agents
     limit_rate = 1.0
-    market_rate = 1000.0
-    cancel_rate = 1000.0
+    market_rate = 1.0
+    cancel_rate = 1.0
     sigma = 0.2
     agents = Dict{Int64, Agent}()
     for i in 1:N
