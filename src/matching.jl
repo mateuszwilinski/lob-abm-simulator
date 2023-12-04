@@ -6,36 +6,30 @@ Adds "order" (limit order) to the "book".
 """
 function add_order!(book::Book, order::LimitOrder)
     if order.is_bid
-        if order.price >= book.best_ask
-            match_order!(book.asks[book.best_ask], order, book)
+        while (order.price >= book.best_ask) & (get_size(order) > 0)
+            match_order!(book.asks[book.best_ask], order)
             if isempty(book.asks[book.best_ask])
                 delete!(book.asks, book.best_ask)
                 update_best_ask!(book)
             end
-            if get_size(order) > 0
-                add_order!(book, order)
-            end
-        else
+        end
+        if get_size(order) > 0
             place_order!(book.bids, order)
-            book.orders[order.id] = order
             if !(order.price <= book.best_bid)  # This form is in case of best_bid==NaN
-                update_best_ask!(book)
+                update_best_bid!(book)
             end
         end
     else
-        if order.price <= book.best_bid
-            match_order!(book.bids[book.best_bid], order, book)
+        while (order.price <= book.best_bid) & (get_size(order) > 0)
+            match_order!(book.bids[book.best_bid], order)
             if isempty(book.bids[book.best_bid])
                 delete!(book.bids, book.best_bid)
                 update_best_bid!(book)
             end
-            if get_size(order) > 0
-                add_order!(book, order)
-            end
-        else
+        end
+        if get_size(order) > 0
             place_order!(book.asks, order)
-            book.orders[order.id] = order
-            if !(order.price >= book.best_ask)  # This form is in case of best_ask==NaN
+            if !(order.price >= book.best_ask)  # This form is in case of best_bid==NaN
                 update_best_ask!(book)
             end
         end
@@ -49,25 +43,24 @@ Adds "order" (market order) to the "book".
 """
 function add_order!(book::Book, order::MarketOrder)
     if order.is_bid
-        match_order!(book.asks[book.best_ask], order, book)
-        if isempty(book.asks[book.best_ask])
-            delete!(book.asks, book.best_ask)
-            update_best_ask!(book)
-        end
-        if get_size(order) > 0
-            add_order!(book, order)
+        while !isnan(book.best_ask) & (get_size(order) > 0)
+            match_order!(book.asks[book.best_ask], order)
+            if isempty(book.asks[book.best_ask])
+                delete!(book.asks, book.best_ask)
+                update_best_ask!(book)
+            end
         end
     else
-        match_order!(book.bids[book.best_bid], order, book)
-        if isempty(book.bids[book.best_bid])
-            delete!(book.bids, book.best_bid)
-            update_best_bid!(book)
-        end
-        if get_size(order) > 0
-            add_order!(book, order)
+        while !isnan(book.best_bid) & (get_size(order) > 0)
+            match_order!(book.bids[book.best_bid], order)
+            if isempty(book.bids[book.best_bid])
+                delete!(book.bids, book.best_bid)
+                update_best_bid!(book)
+            end
         end
     end
 end
+
 
 """
     match_order!(book_level, order, book)
@@ -78,11 +71,11 @@ there are no checks whether the level is on the
 correct side and has the correct price.
 """
 function match_order!(book_level::OrderedSet{LimitOrder},
-                      order::Order, book::Book)
+                      order::Order)
     for o in book_level
         if o.size[] == order.size[]
             delete!(book_level, o)
-            delete!(book.orders, o.id)
+            # delete!(book.orders, o.id)  # TODO: move this outside
             order.size[] = 0
             break
         elseif o.size[] > order.size[]
@@ -91,10 +84,11 @@ function match_order!(book_level::OrderedSet{LimitOrder},
             break
         else
             delete!(book_level, o)
-            delete!(book.orders, o.id)
+            # delete!(book.orders, o.id)
             order.size[] -= o.size[]
         end
     end
+    # TODO: return orders changed in the process!
 end
 
 """
