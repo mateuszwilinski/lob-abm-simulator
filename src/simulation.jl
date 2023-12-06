@@ -7,21 +7,20 @@ import DataStructures: PriorityQueue, dequeue!, enqueue!
 Add "new_msgs" to the messages queue with priority equal
 to "activation_time" field for a given new message.
 """
-function add_new_msgs!(messages::PriorityQueue, new_msgs::Tuple)
+function add_new_msgs!(messages::PriorityQueue, new_msgs::Vector{Dict})
     for msg in new_msgs
-        enqueue!(messages, msg, msg["activation_time"])
+        enqueue!(messages, msg, (msg["activation_time"], msg["activation_priority"]))
     end
 end
 
 """
-    run_simulation(agents, book, orders, messages, params)
+    run_simulation(agents, book, messages, params)
 
 Run simulation with "params" over the "book" with given "agents"
 and initial messages up until "end_time".
 """
 function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potentially Dict{String, Book} in th future
-                        orders::Dict{Int64, LimitOrder}, messages::PriorityQueue,
-                        params::Dict)
+                        messages::PriorityQueue, params::Dict)
     current_time = params["initial_time"]
     println(current_time, " - ", mid_price(book))  # TODO: Initial snapshot here
     # TODO:
@@ -48,7 +47,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
 
         # activate agent according to the priority message
         agent = agents[msg["recipient"]]
-        new_msgs = action!(agent, book, orders, params, msg)
+        new_msgs = action!(agent, book, agents, params, msg)
         add_new_msgs!(messages, new_msgs)
 
         println(current_time, " - ", mid_price(book))

@@ -5,9 +5,10 @@
 Adds "order" (limit order) to the "book".
 """
 function add_order!(book::Book, order::LimitOrder)
+    matched_orders = Vector{Tuple{Int64, Int64}}()
     if order.is_bid
         while (order.price >= book.best_ask) & (get_size(order) > 0)
-            match_order!(book.asks[book.best_ask], order)
+            append!(matched_orders, match_order!(book.asks[book.best_ask], order))
             if isempty(book.asks[book.best_ask])
                 delete!(book.asks, book.best_ask)
                 update_best_ask!(book)
@@ -21,7 +22,7 @@ function add_order!(book::Book, order::LimitOrder)
         end
     else
         while (order.price <= book.best_bid) & (get_size(order) > 0)
-            match_order!(book.bids[book.best_bid], order)
+            append!(matched_orders, match_order!(book.bids[book.best_bid], order))
             if isempty(book.bids[book.best_bid])
                 delete!(book.bids, book.best_bid)
                 update_best_bid!(book)
@@ -34,6 +35,7 @@ function add_order!(book::Book, order::LimitOrder)
             end
         end
     end
+    return matched_orders
 end
 
 """
@@ -42,9 +44,10 @@ end
 Adds "order" (market order) to the "book".
 """
 function add_order!(book::Book, order::MarketOrder)
+    matched_orders = Vector{Tuple{Int64, Int64}}()
     if order.is_bid
         while !isnan(book.best_ask) & (get_size(order) > 0)
-            match_order!(book.asks[book.best_ask], order)
+            append!(matched_orders, match_order!(book.asks[book.best_ask], order))
             if isempty(book.asks[book.best_ask])
                 delete!(book.asks, book.best_ask)
                 update_best_ask!(book)
@@ -52,13 +55,14 @@ function add_order!(book::Book, order::MarketOrder)
         end
     else
         while !isnan(book.best_bid) & (get_size(order) > 0)
-            match_order!(book.bids[book.best_bid], order)
+            append!(matched_orders, match_order!(book.bids[book.best_bid], order))
             if isempty(book.bids[book.best_bid])
                 delete!(book.bids, book.best_bid)
                 update_best_bid!(book)
             end
         end
     end
+    return matched_orders
 end
 
 
@@ -72,10 +76,12 @@ correct side and has the correct price.
 """
 function match_order!(book_level::OrderedSet{LimitOrder},
                       order::Order)
+    matched_orders = Vector{Tuple{Int64, Int64}}()
     for o in book_level
+        push!(matched_orders, (o.agent, o.id))
         if o.size[] == order.size[]
+            o.size[] = 0
             delete!(book_level, o)
-            # delete!(book.orders, o.id)  # TODO: move this outside
             order.size[] = 0
             break
         elseif o.size[] > order.size[]
@@ -83,12 +89,12 @@ function match_order!(book_level::OrderedSet{LimitOrder},
             order.size[] = 0
             break
         else
-            delete!(book_level, o)
-            # delete!(book.orders, o.id)
             order.size[] -= o.size[]
+            o.size[] = 0
+            delete!(book_level, o)
         end
     end
-    # TODO: return orders changed in the process!
+    return matched_orders
 end
 
 """

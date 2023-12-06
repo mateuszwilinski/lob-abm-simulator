@@ -5,12 +5,12 @@ abstract type Agent end
 
 struct Trader <: Agent
     id::Int64
-    orders::OrderedSet{Int64}
+    orders::Dict{Int64, LimitOrder}
 end
 
 struct NoiseTrader <: Agent
     id::Int64
-    orders::OrderedSet{Int64}
+    orders::Dict{Int64, LimitOrder}
     limit_rate::Float64
     market_rate::Float64
     cancel_rate::Float64

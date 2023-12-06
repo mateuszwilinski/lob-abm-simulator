@@ -2,10 +2,12 @@
 using Test
 
 include("../src/orders.jl")
+include("../src/agents.jl")
 include("../src/books.jl")
 include("../src/matching.jl")
+include("../src/trading.jl")
 
-# Data
+# Data and setting
 
 # Create a new limit order book
 book = Book(
@@ -13,29 +15,46 @@ book = Book(
     Dict{Float64, OrderedSet}(),
     NaN,
     NaN,
-    Dict{Int64, LimitOrder}(),
     0,
     "ABC"
     )
+
+# Create agents
+limit_rate = 1.0
+market_rate = 1.0
+cancel_rate = 1.0
+sigma = 0.2
+
+agents = Dict{Int64, Agent}()
+for i in 1:6
+    agents[i] = NoiseTrader(
+                        i,
+                        Dict{Int64, LimitOrder}(),
+                        limit_rate,
+                        market_rate,
+                        cancel_rate,
+                        sigma
+                        )
+end
 
 # Build ask and bid sides with orders
 asks = Dict{Float64, OrderedSet}()
 asks[11.0] = OrderedSet()
 push!(asks[11.0], LimitOrder(11.0, 20, false, 1, 1, "ABC"))
-book.orders[asks[11.0][1].id] = asks[11.0][1]
+agents[1].orders[asks[11.0][1].id] = asks[11.0][1]
 push!(asks[11.0], LimitOrder(11.0, 210, false, 2, 2, "ABC"))
-book.orders[asks[11.0][2].id] = asks[11.0][2]
+agents[2].orders[asks[11.0][2].id] = asks[11.0][2]
 push!(asks[11.0], LimitOrder(11.0, 20, false, 3, 1, "ABC"))
-book.orders[asks[11.0][3].id] = asks[11.0][3]
+agents[1].orders[asks[11.0][3].id] = asks[11.0][3]
 
 bids = Dict{Float64, OrderedSet}()
 bids[10.0] = OrderedSet()
 push!(bids[10.0], LimitOrder(10.0, 20, true, 4, 3, "ABC"))
-book.orders[bids[10.0][1].id] = bids[10.0][1]
+agents[3].orders[bids[10.0][1].id] = bids[10.0][1]
 push!(bids[10.0], LimitOrder(10.0, 200, true, 5, 4, "ABC"))
-book.orders[bids[10.0][2].id] = bids[10.0][2]
+agents[4].orders[bids[10.0][2].id] = bids[10.0][2]
 push!(bids[10.0], LimitOrder(10.0, 100, true, 6, 5, "ABC"))
-book.orders[bids[10.0][3].id] = bids[10.0][3]
+agents[5].orders[bids[10.0][3].id] = bids[10.0][3]
 
 book.bids = bids
 book.asks = asks
@@ -43,26 +62,67 @@ update_best_bid!(book)
 update_best_ask!(book)
 
 # create an incoming orders
-limit_order = LimitOrder(9.0, 400, false, 5, 2, "ABC")
-market_order = MarketOrder(200, true, 8, 7, "ABC")
+limit_order = LimitOrder(9.0, 400, false, 7, 2, "ABC")
+market_order = MarketOrder(200, true, 8, 6, "ABC")
 
-add_order!(book, limit_order)
-add_order!(book, market_order)
+matched_orders = add_order!(book, limit_order)
+if get_size(limit_order) > 0
+    agents[limit_order.agent].orders[limit_order.id] = limit_order
+end
+remove_matched_orders!(matched_orders, agents)
 
+#
 # LOB Tests
+#
 
-@testset "match_order" begin
-    @test isnan(book.best_bid)
-    @test book.best_ask == 11.0
+@testset verbose=true "match orders" begin
+    @testset "limit order" begin
+        @test isnan(book.best_bid)
+        @test book.best_ask == 9.0
 
-    @test isempty(book.bids)
-    @test length(book.asks) == 1
-    @test length(book.asks[11.0]) == 2
-    @test book.asks[11.0][1].size[] == 110
-    @test book.asks[11.0][2].size[] == 20
+        @test isempty(book.bids)
+        @test length(book.asks) == 2
+        @test length(book.asks[9.0]) == 1
+        @test book.asks[9.0][1].size[] == 80
+        @test length(book.asks[11.0]) == 3
+        @test book.asks[11.0][1].size[] == 20
+        @test book.asks[11.0][2].size[] == 210
+        @test book.asks[11.0][3].size[] == 20
 
-    @test length(book.orders) == 2
-    for i in keys(book.asks[11.0])
-        @test book.asks[11.0][i] === book.orders[book.asks[11.0][i].id]
+        @test length(agents[1].orders) == 2
+        @test length(agents[2].orders) == 2
+        for i in 3:6
+            @test length(agents[i].orders) == 0
+        end
+        for i in keys(book.asks[11.0])
+            @test (book.asks[11.0][i] ===
+                   agents[book.asks[11.0][i].agent].orders[book.asks[11.0][i].id])
+        end
+    end
+
+    matched_orders = add_order!(book, market_order)
+    remove_matched_orders!(matched_orders, agents)
+
+    @testset "market order" begin
+        @test isnan(book.best_bid)
+        @test book.best_ask == 11.0
+    
+        @test isempty(book.bids)
+        @test length(book.asks) == 1
+        @test length(book.asks[11.0]) == 2
+        @test book.asks[11.0][1].size[] == 110
+        @test book.asks[11.0][2].size[] == 20
+    
+        @test length(agents[1].orders) == 1
+        @test length(agents[2].orders) == 1
+        for i in 3:6
+            @test length(agents[i].orders) == 0
+        end
+        for i in keys(book.asks[11.0])
+            @test (book.asks[11.0][i] ===
+                   agents[book.asks[11.0][i].agent].orders[book.asks[11.0][i].id])
+        end
     end
 end
+
+
