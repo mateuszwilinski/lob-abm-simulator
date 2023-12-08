@@ -6,7 +6,6 @@ mutable struct Book
     asks::Dict{Float64, OrderedSet{LimitOrder}}
     best_bid::Float64
     best_ask::Float64
-    orders::Dict{Int64, LimitOrder}
     time::Int64
     symbol::String
 end
