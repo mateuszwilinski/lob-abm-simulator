@@ -137,8 +137,20 @@ Delete order with id equal to "order_id" from the "book" and the "agent"'s order
 function cancel_order!(order_id::Int64, book::Book, agent::Agent)
     if agent.orders[order_id].is_bid
         delete!(book.bids[agent.orders[order_id].price], agent.orders[order_id])
+        if isempty(book.bids[agent.orders[order_id].price])
+            delete!(book.bids, agent.orders[order_id].price)
+            if book.best_bid == agent.orders[order_id].price
+                update_best_bid!(book)
+            end
+        end
     else
         delete!(book.asks[agent.orders[order_id].price], agent.orders[order_id])
+        if isempty(book.asks[agent.orders[order_id].price])
+            delete!(book.asks, agent.orders[order_id].price)
+            if book.best_ask == agent.orders[order_id].price
+                update_best_ask!(book)
+            end
+        end
     end
     delete!(agent.orders, order_id)
 end
@@ -157,7 +169,7 @@ function modify_order!(order_id::Int64, new_size::Int64, book::Book, agent::Agen
         delete!(book.asks[agent.orders[order_id].price], agent.orders[order_id])
         push!(book.asks[agent.orders[order_id].price], agent.orders[order_id])
     end
-    agent.orders[order_id].size[] = new_size
+    agent.orders[order_id].size[] = new_size  # TODO: zero should not be allowed
 end
 
 """
