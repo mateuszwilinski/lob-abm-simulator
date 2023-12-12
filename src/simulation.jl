@@ -34,11 +34,13 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
     end
 
     # Start simulation
+    snapshots = Dict{Int64, Matrix}()
     while !isempty(messages) & (current_time < params["end_time"])
         msg = dequeue!(messages)
 
         # check and set times
         if msg["activation_time"] > current_time
+            snapshots[current_time] = market_depth(book)
             current_time = msg["activation_time"]
             book.time = current_time
         elseif msg["activation_time"] < current_time
@@ -54,5 +56,5 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         # TODO:
         # We could generate book snapshot here.
     end
-    return 0  # TODO: the snapshots can be returned here
+    return snapshots
 end
