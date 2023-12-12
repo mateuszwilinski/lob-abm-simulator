@@ -1,4 +1,6 @@
 
+using CSV
+
 include("../src/orders.jl")
 include("../src/agents.jl")
 include("../src/books.jl")
@@ -26,7 +28,7 @@ function main()
     # Build agents
     limit_rate = 1.0
     market_rate = 4.0
-    cancel_rate = 9.0
+    cancel_rate = 8.0
     sigma = 0.2
     agents = Dict{Int64, Agent}()
     # agents[1] = Trader(1, Dict{Int64, LimitOrder}())  # TODO: make a separate agent for initial orders
@@ -80,7 +82,10 @@ function main()
     # Run simulation
     messages = PriorityQueue()  # TODO: Add correct types
     simulation_outcome = run_simulation(agents, book, messages, params)
-    println(simulation_outcome)
+    # println(simulation_outcome)
+    for i in keys(simulation_outcome)
+        CSV.write(string("../results/noise/", i, ".csv"))
+    end
     # TODO: It's surprising to me that even with 100 agents I sometimes get NaNs -- even for longer periods.
     #       This is something to check(!!!)
 end
