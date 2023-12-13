@@ -1,4 +1,6 @@
 
+using DelimitedFiles
+
 include("../src/orders.jl")
 include("../src/agents.jl")
 include("../src/books.jl")
@@ -26,7 +28,7 @@ function main()
     # Build agents
     limit_rate = 1.0
     market_rate = 4.0
-    cancel_rate = 9.0
+    cancel_rate = 8.0
     sigma = 0.2
     agents = Dict{Int64, Agent}()
     # agents[1] = Trader(1, Dict{Int64, LimitOrder}())  # TODO: make a separate agent for initial orders
@@ -44,20 +46,20 @@ function main()
     # Build starting orders
     asks = Dict{Float64, OrderedSet}()
     asks[11.0] = OrderedSet()
-    push!(asks[11.0], LimitOrder(11.0, 2, false, 1, 1, "ABC"))
+    push!(asks[11.0], LimitOrder(11.0, 1, false, 1, 1, "ABC"))
     agents[1].orders[asks[11.0][1].id] = asks[11.0][1]
-    push!(asks[11.0], LimitOrder(11.0, 4, false, 2, 1, "ABC"))
+    push!(asks[11.0], LimitOrder(11.0, 2, false, 2, 1, "ABC"))
     agents[1].orders[asks[11.0][2].id] = asks[11.0][2]
-    push!(asks[11.0], LimitOrder(11.0, 3, false, 3, 1, "ABC"))
+    push!(asks[11.0], LimitOrder(11.0, 1, false, 3, 1, "ABC"))
     agents[1].orders[asks[11.0][3].id] = asks[11.0][3]
     
     bids = Dict{Float64, OrderedSet}()
     bids[10.0] = OrderedSet()
-    push!(bids[10.0], LimitOrder(10.0, 2, true, 4, 1, "ABC"))
+    push!(bids[10.0], LimitOrder(10.0, 1, true, 4, 1, "ABC"))
     agents[1].orders[bids[10.0][1].id] = bids[10.0][1]
-    push!(bids[10.0], LimitOrder(10.0, 2, true, 5, 1, "ABC"))
+    push!(bids[10.0], LimitOrder(10.0, 1, true, 5, 1, "ABC"))
     agents[1].orders[bids[10.0][2].id] = bids[10.0][2]
-    push!(bids[10.0], LimitOrder(10.0, 5, true, 6, 1, "ABC"))
+    push!(bids[10.0], LimitOrder(10.0, 2, true, 6, 1, "ABC"))
     agents[1].orders[bids[10.0][3].id] = bids[10.0][3]
 
     # Initiate Book
@@ -80,7 +82,10 @@ function main()
     # Run simulation
     messages = PriorityQueue()  # TODO: Add correct types
     simulation_outcome = run_simulation(agents, book, messages, params)
-    println(simulation_outcome)
+    # println(simulation_outcome)
+    for i in keys(simulation_outcome)
+        writedlm(string("../results/noise/", i, ".txt"), simulation_outcome[i], ";")
+    end
     # TODO: It's surprising to me that even with 100 agents I sometimes get NaNs -- even for longer periods.
     #       This is something to check(!!!)
 end
