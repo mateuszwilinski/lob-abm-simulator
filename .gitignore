@@ -38,3 +38,6 @@ Manifest.toml
 
 # MacBook files
 .DS_Store
+
+# VSCode
+/.vscode/
