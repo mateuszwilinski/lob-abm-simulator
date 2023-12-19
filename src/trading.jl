@@ -90,9 +90,9 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         rate = agent.market_rate
         append!(msgs, messages_from_match(matched_orders, book))
     elseif msg["action"] == "LIMIT_ORDER"
-        price = mid_price(book) + randn() * agent.sigma
+        price = mid_price(book) + randn() * agent.sigma  # TODO: maybe we should add rounding to ticks?
         if isnan(price)
-            price = params["fundamental_price"]
+            price = params["fundamental_price"]  # TODO: this may depend on time
         end
         params["last_id"] += 1
         order = create_lmt_order(agent, book.symbol, params["last_id"], price)
