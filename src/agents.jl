@@ -16,3 +16,14 @@ struct NoiseTrader <: Agent
     cancel_rate::Float64
     sigma::Float64
 end
+
+struct MarketMaker <: Agent
+    id::Int64
+    orders::Dict{Int64, LimitOrder}
+    rate::Float64
+    sigma::Float64
+end
+
+struct Reporter <: Agent
+    id::Int64
+end
