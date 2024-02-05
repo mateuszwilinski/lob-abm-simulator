@@ -19,7 +19,7 @@ end
 Run simulation with "params" over the "book" with given "agents"
 and initial messages up until "end_time".
 """
-function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potentially Dict{String, Book} in th future
+function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potentially Dict{String, Book} in the future
                         messages::PriorityQueue, params::Dict)
     current_time = params["initial_time"]
     println(current_time, " - ", mid_price(book))  # TODO: Initial snapshot here
