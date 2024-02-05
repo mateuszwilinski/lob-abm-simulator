@@ -2,8 +2,9 @@
 using DelimitedFiles
 
 include("../src/orders.jl")
-include("../src/agents.jl")
 include("../src/books.jl")
+include("../src/agents.jl")
+include("../src/agents/noise_trader.jl")
 include("../src/trading.jl")
 include("../src/matching.jl")
 include("../src/market_state.jl")
@@ -26,7 +27,7 @@ function main()
     params["fundamental_price"] = 10.0
 
     # Build agents
-    limit_rate = 1.0
+    limit_rate = 0.6
     market_rate = 4.0
     cancel_rate = 8.0
     sigma = 0.2
