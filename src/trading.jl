@@ -7,13 +7,13 @@ Create messages about "matched_orders".
 function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64}}, book::Book)
     msgs = Vector{Dict}()
     for (agent_id, order_id) in matched_orders
-        msg = Dict{String, Union{String, Int64, Float64}}()
+        msg = Dict{String, Union{String, Int64, Float64, Bool}}()
         msg["recipient"] = agent_id
         msg["book"] = book.symbol
         msg["activation_time"] = book.time
         msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
         msg["action"] = "UPDATE_ORDER"
-        msg["order_id"] = order_id
+        msg["order_id"] = order_id  # TODO: seems like we can produce multiple same messages(!!!)
         push!(msgs, msg)
     end
     return msgs

@@ -7,7 +7,7 @@ import Distributions: Exponential
 Initiate NoiseTrader "agent" on the "book", for simulation with "params".
 """
 function initiate!(agent::NoiseTrader, book::Book, params::Dict)
-    mrkt_msg = Dict{String, Union{String, Int64, Float64}}()
+    mrkt_msg = Dict{String, Union{String, Int64, Float64, Bool}}()
     mrkt_msg["recipient"] = agent.id
     mrkt_msg["book"] = book.symbol
     lmt_msg = copy(mrkt_msg)

@@ -7,34 +7,18 @@ import Distributions: Exponential
 Initiate MarketMaker "agent" on the "book", for simulation with "params".
 """
 function initiate!(agent::MarketMaker, book::Book, params::Dict)
-    lmt_msg = Dict{String, Union{String, Int64, Float64}}()
-    lmt_msg["recipient"] = agent.id
-    lmt_msg["book"] = book.symbol
-    cncl_msg = copy(lmt_msg)
+    msg = Dict{String, Union{String, Int64, Float64, Bool}}()
+    msg["recipient"] = agent.id
+    msg["book"] = book.symbol
 
-    lmt_msg["activation_time"] = ceil(Int64, params["initial_time"] +
-                                      rand(Exponential(agent.rate)))
-    cncl_msg["activation_time"] = ceil(Int64, params["initial_time"] +
-                                       rand(Exponential(agent.rate)))
-    lmt_msg["activation_priority"] = 1
-    cncl_msg["activation_priority"] = 1
+    msg["activation_time"] = params["initial_time"]
+    msg["activation_priority"] = 1
     
-    lmt_msg["action"] = "LIMIT_ORDER"
-    cncl_msg["action"] = "CANCEL_ORDER"
+    msg["action"] = "LADDER_ORDERS"
     
     msgs = Vector{Dict}()
-    append!(msgs, [lmt_msg, cncl_msg])
+    push!(msgs, msg)
     return msgs
-end
-
-"""
-    create_lmt_order(agent, symbol, order_id, price)
-
-Create new limit order with "order_id" and "price" for "agent" and "symbol".
-"""
-function create_lmt_order(agent::MarketMaker, symbol::String,
-                          order_id::Int64, price::Float64)
-    return LimitOrder(price, 1, rand(Bool), order_id, agent.id, symbol)
 end
 
 """
@@ -48,39 +32,51 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
     msgs = Vector{Dict}()
     
     # Agent trades
-    if msg["action"] == "LIMIT_ORDER"
-        price = mid_price(book) + randn() * agent.sigma  # TODO: maybe we should add rounding to ticks?
-        if isnan(price)
-            price = params["fundamental_price"]  # TODO: this may depend on time
-        end
-        params["last_id"] += 1
-        order = create_lmt_order(agent, book.symbol, params["last_id"], price)
-        matched_orders = add_order!(book, order)
-        if get_size(order) > 0
-            agent.orders[order.id] = order
-        end
-
-        rate = agent.rate
-        append!(msgs, messages_from_match(matched_orders, book))
-    elseif msg["action"] == "CANCEL_ORDER"
+    if msg["action"] == "LADDER_ORDERS"
+        # cancel previous ladder
         if !isempty(agent.orders)
-            order_id = rand(keys(agent.orders))
-            cancel_order!(order_id, book, agent)
-            delete!(agent.orders, order_id)
+            for order_id in keys(agent.orders)
+                cancel_order!(order_id, book, agent)
+                delete!(agent.orders, order_id)
+            end
         end
-
-        rate = agent.rate
+        # build new ladder
+        ask = book.best_ask
+        bid = book.best_bid
+        if isnan(ask) | isnan(bid)
+            ask = params["fundamental_price"] + agent.q
+            bid = params["fundamental_price"] - agent.q
+        end
+        for k in 0:agent.K
+            # ask ladder step
+            params["last_id"] += 1
+            order = LimitOrder(ask + k * agent.q, agent.size, false, params["last_id"], agent.id, book.symbol)
+            matched_orders = add_order!(book, order)
+            if get_size(order) > 0
+                agent.orders[order.id] = order
+            end
+            append!(msgs, messages_from_match(matched_orders, book))
+            # bid ladder step
+            params["last_id"] += 1
+            order = LimitOrder(bid - k * agent.q, agent.size, true, params["last_id"], agent.id, book.symbol)
+            matched_orders = add_order!(book, order)
+            if get_size(order) > 0
+                agent.orders[order.id] = order
+            end
+            append!(msgs, messages_from_match(matched_orders, book))
+        end
     elseif msg["action"] == "UPDATE_ORDER"
         if get_size(agent.orders[msg["order_id"]]) == 0
             delete!(agent.orders, msg["order_id"])
         end
         return msgs
     else
+        println(msg["action"])
         throw(error("Unknown action for a Market Maker."))
     end
 
     # Agent sends new messages
-    activation_time_diff = ceil(Int64, rand(Exponential(rate)))
+    activation_time_diff = agent.rate  # ceil(Int64, rand(Exponential(agent.rate)))
     response = copy(msg)
     response["activation_time"] += activation_time_diff
     push!(msgs, response)
