@@ -23,7 +23,7 @@ function main()
     # Simulation parameters
     params = Dict()
     params["end_time"] = end_time
-    params["initial_time"] = 0
+    params["initial_time"] = 1
     params["fundamental_price"] = 10.0
 
     # Build agents
@@ -78,15 +78,15 @@ function main()
     update_best_bid!(book)
     update_best_ask!(book)
 
-    params["last_id"] = 6
+    params["first_id"] = 6
 
     # Run simulation
     messages = PriorityQueue()  # TODO: Add correct types
     simulation_outcome = run_simulation(agents, book, messages, params)
-    # println(simulation_outcome)
-    for i in keys(simulation_outcome)
-        writedlm(string("../results/noise/", i, ".txt"), simulation_outcome[i], ";")
-    end
+    println(simulation_outcome)
+    # for i in keys(simulation_outcome)
+    #     writedlm(string("../results/noise/", i, ".txt"), simulation_outcome[i], ";")
+    # end
     # TODO: It's surprising to me that even with 100 agents I sometimes get NaNs -- even for longer periods.
     #       This is something to check(!!!)
 end
