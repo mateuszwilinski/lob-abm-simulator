@@ -52,19 +52,19 @@ function create_lmt_order(agent::NoiseTrader, symbol::String,
 end
 
 """
-    action!(agent, book, agents, params, msg)
+    action!(agent, book, agents, params, simulation, msg)
 
 Activate an agent, trade or cancel an existing trade and send a new message.
 """
 function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
-                 params::Dict, msg::Dict)  # TODO: agents are useless for noise traders, but might be useful for other traders.
-    # Initialise new messages
+                 params::Dict, simulation::Dict, msg::Dict)  # TODO: agents are useless for noise traders, but might be useful for other traders.
+    # initialise new messages
     msgs = Vector{Dict}()
     
-    # Agent trades
+    # agent trades
     if msg["action"] == "MARKET_ORDER"
-        params["last_id"] += 1
-        order = create_mkt_order(agent, book.symbol, params["last_id"])
+        simulation["last_id"] += 1
+        order = create_mkt_order(agent, book.symbol, simulation["last_id"])
         matched_orders = add_order!(book, order)
 
         rate = agent.market_rate
@@ -74,8 +74,8 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         if isnan(price)
             price = params["fundamental_price"]  # TODO: this may depend on time
         end
-        params["last_id"] += 1
-        order = create_lmt_order(agent, book.symbol, params["last_id"], price)
+        simulation["last_id"] += 1
+        order = create_lmt_order(agent, book.symbol, simulation["last_id"], price)
         matched_orders = add_order!(book, order)
         if get_size(order) > 0
             agent.orders[order.id] = order
@@ -100,7 +100,7 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         throw(error("Unknown action for a Noise Trader."))
     end
 
-    # Agent sends new messages
+    # agent sends next messages
     activation_time_diff = ceil(Int64, rand(Exponential(rate)))
     response = copy(msg)
     response["activation_time"] += activation_time_diff
