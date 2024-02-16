@@ -22,16 +22,16 @@ function initiate!(agent::MarketMaker, book::Book, params::Dict)
 end
 
 """
-    action!(agent, book, agents, params, msg)
+    action!(agent, book, agents, params, simulation, msg)
 
 Activate an agent, trade or cancel an existing trade and send a new message.
 """
 function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
-                 params::Dict, msg::Dict)  # TODO: agents are useless for noise traders, but might be useful for other traders.
-    # Initialise new messages
+                 params::Dict, simulation::Dict, msg::Dict)
+    # initialise new messages
     msgs = Vector{Dict}()
     
-    # Agent trades
+    # agent trades
     if msg["action"] == "LADDER_ORDERS"
         # cancel previous ladder
         if !isempty(agent.orders)
@@ -49,37 +49,34 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
         end
         for k in 0:agent.K
             # ask ladder step
-            params["last_id"] += 1
-            order = LimitOrder(ask + k * agent.q, agent.size, false, params["last_id"], agent.id, book.symbol)
+            simulation["last_id"] += 1
+            order = LimitOrder(ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id, book.symbol)
             matched_orders = add_order!(book, order)
             if get_size(order) > 0
                 agent.orders[order.id] = order
             end
             append!(msgs, messages_from_match(matched_orders, book))
             # bid ladder step
-            params["last_id"] += 1
-            order = LimitOrder(bid - k * agent.q, agent.size, true, params["last_id"], agent.id, book.symbol)
+            simulation["last_id"] += 1
+            order = LimitOrder(bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id, book.symbol)
             matched_orders = add_order!(book, order)
             if get_size(order) > 0
                 agent.orders[order.id] = order
             end
             append!(msgs, messages_from_match(matched_orders, book))
         end
+
+        # agent sends next ladder message
+        activation_time_diff = ceil(Int64, rand(Exponential(agent.rate)))
+        response = copy(msg)
+        response["activation_time"] += activation_time_diff
+        push!(msgs, response)
     elseif msg["action"] == "UPDATE_ORDER"
         if get_size(agent.orders[msg["order_id"]]) == 0
             delete!(agent.orders, msg["order_id"])
         end
-        return msgs
     else
-        println(msg["action"])
         throw(error("Unknown action for a Market Maker."))
     end
-
-    # Agent sends new messages
-    activation_time_diff = agent.rate  # ceil(Int64, rand(Exponential(agent.rate)))
-    response = copy(msg)
-    response["activation_time"] += activation_time_diff
-    push!(msgs, response)
-
     return msgs
 end

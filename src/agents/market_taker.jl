@@ -23,18 +23,18 @@ function initiate!(agent::MarketTaker, book::Book, params::Dict)
 end
 
 """
-    action!(agent, book, agents, params, msg)
+    action!(agent, book, agents, params, simulation, msg)
 
 Activate an agent, trade or cancel an existing trade and send a new message.
 """
 function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
-                 params::Dict, msg::Dict)  # TODO: agents are useless for noise traders, but might be useful for other traders.
-    # Initialise new messages
+                 params::Dict, simulation::Dict, msg::Dict)  # TODO: params are useless here, but are useful for other agents and consistency.
+    # initialise new messages
     msgs = Vector{Dict}()
     
-    # Agent trades
+    # agent trades
     if msg["action"] == "BIG_ORDER"
-        # Smaller market orders
+        # smaller market orders
         is_bid = rand(Bool)
         K = floor(Int64, agent.size / agent.chunk)
         for k in 1:K
@@ -65,14 +65,14 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
             push!(msgs, [mrkt_msg])
         end
 
-        # Another big order
-        activation_time_diff = K * agent.exit_time + ceil(Int64, rand(Exponential(agent.rate)))
+        # next big order
+        activation_time_diff = ceil(Int64, K * agent.exit_time + rand(Exponential(agent.rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff
         push!(msgs, response)
     elseif msg["action"] == "MARKET_ORDER"
-        params["last_id"] += 1
-        order = MarketOrder(msg["chunk"], msg["is_bid"], params["last_id"], agent.id, book.symbol)
+        simulation["last_id"] += 1
+        order = MarketOrder(msg["chunk"], msg["is_bid"], simulation["last_id"], agent.id, book.symbol)
         matched_orders = add_order!(book, order)
         append!(msgs, messages_from_match(matched_orders, book))
     else
