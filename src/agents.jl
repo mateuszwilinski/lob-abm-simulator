@@ -42,7 +42,7 @@ MarketMaker(
     size::Int64
     ) = MarketMaker(id, Dict{Int64, LimitOrder}(), rate, K, q, size)
 
-struct MarketTaker <: Agent  # TODO: Maybe we could add knowledge about fundamental price?
+struct MarketTaker <: Agent
     id::Int64
     orders::Dict{Int64, LimitOrder}
     rate::Float64
@@ -62,12 +62,36 @@ MarketTaker(
 struct Chartist <: Agent
     id::Int64
     orders::Dict{Int64, LimitOrder}
+    rate::Float64
+    coeff::Float64
+    sigma::Float64
+    horizon::Int64
 end
+
+Chartist(
+    id::Int64,
+    rate::Float64,
+    coeff::Float64,
+    sigma::Float64,
+    horizon::Int64
+    ) = Chartist(id, Dict{Int64, LimitOrder}(), rate, coeff, sigma, horizon)
 
 struct Fundamentalist <: Agent
     id::Int64
     orders::Dict{Int64, LimitOrder}
+    rate::Float64
+    coeff::Float64
+    sigma::Float64
+    horizon::Int64
 end
+
+Fundamentalist(
+    id::Int64,
+    rate::Float64,
+    coeff::Float64,
+    sigma::Float64,
+    horizon::Int64
+    ) = Fundamentalist(id, Dict{Int64, LimitOrder}(), rate, coeff, sigma, horizon)
 
 struct Reporter <: Agent
     id::Int64
