@@ -5,6 +5,10 @@ include("../src/orders.jl")
 include("../src/books.jl")
 include("../src/agents.jl")
 include("../src/agents/noise_trader.jl")
+include("../src/agents/market_maker.jl")
+include("../src/agents/market_taker.jl")
+include("../src/agents/chartist.jl")
+include("../src/agents/Fundamentalist.jl")
 include("../src/trading.jl")
 include("../src/matching.jl")
 include("../src/market_state.jl")
@@ -13,34 +17,83 @@ include("../src/simulation.jl")
 """
     main()
 
-Build and run simulation with noise agents.
+Build and run simulation with market makers and noise agents.
 """
 function main()
     # Command line parameters
     N = try parse(Int64, ARGS[1]) catch e 10 end  # number of agents
-    end_time = try parse(Int64, ARGS[2]) catch e 20 end  # simulation length
+    end_time = try parse(Int64, ARGS[2]) catch e 50 end  # simulation length
 
     # Simulation parameters
     params = Dict()
     params["end_time"] = end_time
-    params["initial_time"] = 1
-    params["fundamental_price"] = 10.0
+    params["initial_time"] = 1  # TODO: Initial time cannot be zero or negative.
+    params["fundamental_price"] = 10.5
 
     # Build agents
     limit_rate = 0.6
     market_rate = 4.0
     cancel_rate = 8.0
     sigma = 0.2
+
+    mm_rate = 3.0
+    K = 4
+    q = 0.5
+
+    mt_rate = 5.0
+    exit_time = 1
+    size = 5
+    chunk = 1
+
+    ch_rate = 3.0
+    coeff = 1.2
+    horizon = 5
+
     agents = Dict{Int64, Agent}()
     # agents[1] = Trader(1, Dict{Int64, LimitOrder}())  # TODO: make a separate agent for initial orders
     for i in 1:N
         agents[i] = NoiseTrader(
                             i,
-                            Dict{Int64, LimitOrder}(),
                             limit_rate,
                             market_rate,
                             cancel_rate,
                             sigma
+                            )
+    end
+    for i in 1:N
+        agents[N+i] = MarketMaker(
+                            N+i,
+                            mm_rate,
+                            K,
+                            q,
+                            1
+                            )
+    end
+    for i in 1:N
+        agents[2*N+i] = MarketTaker(
+                            2*N+i,
+                            mt_rate,
+                            exit_time,
+                            size,
+                            chunk
+                            )
+    end
+    for i in 1:N
+        agents[3*N+i] = Chartist(
+                            3*N+i,
+                            ch_rate,
+                            coeff,
+                            sigma,
+                            horizon
+                            )
+    end
+    for i in 1:N
+        agents[4*N+i] = Fundamentalist(
+                            4*N+i,
+                            ch_rate,
+                            coeff,
+                            sigma,
+                            horizon
                             )
     end
 
@@ -83,12 +136,10 @@ function main()
     # Run simulation
     messages = PriorityQueue()  # TODO: Add correct types
     simulation_outcome = run_simulation(agents, book, messages, params)
-    println(simulation_outcome)
+    # println(simulation_outcome)
     # for i in keys(simulation_outcome)
     #     writedlm(string("../results/noise/", i, ".txt"), simulation_outcome[i], ";")
     # end
-    # TODO: It's surprising to me that even with 100 agents I sometimes get NaNs -- even for longer periods.
-    #       This is something to check(!!!)
 end
 
 main()

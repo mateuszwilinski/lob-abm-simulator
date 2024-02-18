@@ -20,20 +20,28 @@ book = Book(
     )
 
 # Create agents
-limit_rate = 1.0
-market_rate = 1.0
-cancel_rate = 1.0
-sigma = 0.2
+# limit_rate = 1.0
+# market_rate = 1.0
+# cancel_rate = 1.0
+# sigma = 0.2
+
+# agents = Dict{Int64, Agent}()
+# for i in 1:6
+#     agents[i] = NoiseTrader(
+#                         i,
+#                         Dict{Int64, LimitOrder}(),
+#                         limit_rate,
+#                         market_rate,
+#                         cancel_rate,
+#                         sigma
+#                         )
+# end
 
 agents = Dict{Int64, Agent}()
 for i in 1:6
-    agents[i] = NoiseTrader(
+    agents[i] = Trader(
                         i,
-                        Dict{Int64, LimitOrder}(),
-                        limit_rate,
-                        market_rate,
-                        cancel_rate,
-                        sigma
+                        Dict{Int64, LimitOrder}()
                         )
 end
 

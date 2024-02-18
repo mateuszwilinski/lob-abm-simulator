@@ -5,6 +5,7 @@ include("../src/orders.jl")
 include("../src/books.jl")
 include("../src/agents.jl")
 include("../src/agents/noise_trader.jl")
+include("../src/agents/market_maker.jl")
 include("../src/trading.jl")
 include("../src/matching.jl")
 include("../src/market_state.jl")
@@ -13,7 +14,7 @@ include("../src/simulation.jl")
 """
     main()
 
-Build and run simulation with noise agents.
+Build and run simulation with market makers and noise agents.
 """
 function main()
     # Command line parameters
@@ -30,17 +31,28 @@ function main()
     limit_rate = 0.6
     market_rate = 4.0
     cancel_rate = 8.0
+    rate = 2.0
     sigma = 0.2
+    K = 4
+    q = 0.5
     agents = Dict{Int64, Agent}()
     # agents[1] = Trader(1, Dict{Int64, LimitOrder}())  # TODO: make a separate agent for initial orders
     for i in 1:N
         agents[i] = NoiseTrader(
                             i,
-                            Dict{Int64, LimitOrder}(),
                             limit_rate,
                             market_rate,
                             cancel_rate,
                             sigma
+                            )
+    end
+    for i in 1:N
+        agents[N+i] = MarketMaker(
+                            N+i,
+                            rate,
+                            K,
+                            q,
+                            1
                             )
     end
 
@@ -83,12 +95,10 @@ function main()
     # Run simulation
     messages = PriorityQueue()  # TODO: Add correct types
     simulation_outcome = run_simulation(agents, book, messages, params)
-    println(simulation_outcome)
+    # println(simulation_outcome)
     # for i in keys(simulation_outcome)
     #     writedlm(string("../results/noise/", i, ".txt"), simulation_outcome[i], ";")
     # end
-    # TODO: It's surprising to me that even with 100 agents I sometimes get NaNs -- even for longer periods.
-    #       This is something to check(!!!)
 end
 
 main()
