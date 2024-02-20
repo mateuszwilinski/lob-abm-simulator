@@ -8,4 +8,5 @@ mutable struct Book
     best_ask::Float64
     time::Int64
     symbol::String
+    trades::Vector{Trade}
 end

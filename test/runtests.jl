@@ -16,7 +16,8 @@ book = Book(
     NaN,
     NaN,
     0,
-    "ABC"
+    "ABC",
+    Vector{Trade}()
     )
 
 # Create agents

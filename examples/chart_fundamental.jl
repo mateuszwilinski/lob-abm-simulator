@@ -123,7 +123,8 @@ function main()
         NaN,
         NaN,
         params["initial_time"],
-        "ABC"
+        "ABC",
+        Vector{Trade}()
     )
     
     book.bids = bids
