@@ -92,7 +92,3 @@ Fundamentalist(
     sigma::Float64,
     horizon::Int64
     ) = Fundamentalist(id, Dict{Int64, LimitOrder}(), rate, coeff, sigma, horizon)
-
-struct Reporter <: Agent
-    id::Int64
-end
