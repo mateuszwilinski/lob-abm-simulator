@@ -28,3 +28,16 @@ function market_depth(book::Book)
 
     return depth
 end
+
+"""
+    market_trades(book)
+
+Return all trades in the book.
+"""
+function market_trades(book::Book)
+    ts = Vector{Tuple{Int64, Float64}}()
+    for t in book.trades
+        push!(ts, (t.size, t.price))
+    end
+    return ts
+end
