@@ -1,25 +1,5 @@
 
 """
-    messages_from_match(matched_orders, book)
-
-Create messages about "matched_orders".
-"""
-function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64}}, book::Book)
-    msgs = Vector{Dict}()
-    for (agent_id, order_id) in matched_orders
-        msg = Dict{String, Union{String, Int64, Float64, Bool}}()
-        msg["recipient"] = agent_id
-        msg["book"] = book.symbol
-        msg["activation_time"] = book.time
-        msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
-        msg["action"] = "UPDATE_ORDER"
-        msg["order_id"] = order_id  # TODO: seems like we can produce multiple same messages(!!!)
-        push!(msgs, msg)
-    end
-    return msgs
-end
-
-"""
     cancel_order!(order_id, book, agent)
 
 Delete order with id equal to "order_id" from the "book" and the "agent"'s orders.
@@ -67,14 +47,16 @@ end
 
 Remove "matched_orders" from "agents" orders.
 """
-function remove_matched_orders!(matched_orders::Vector{Tuple{Int64, Int64}}, agents::Dict{Int64, Agent})
+function remove_matched_orders!(matched_orders::Vector{Tuple{Int64, Int64, Int64,
+                                                             Int64, Int64, Float64}},
+                                agents::Dict{Int64, Agent})
     # check whether the last matching was not partial
-    (agent_id, order_id) = matched_orders[end]
+    (agent_id, order_id,) = matched_orders[end]
     if get_size(agents[agent_id].orders[order_id]) == 0
         delete!(agents[agent_id].orders, order_id)
     end
     # remove all other orders
-    for (agent_id, order_id) in matched_orders[1:(end-1)]
+    for (agent_id, order_id,) in matched_orders[1:(end-1)]
         delete!(agents[agent_id].orders, order_id)
     end
 end  # TODO: This function is potentially useless.

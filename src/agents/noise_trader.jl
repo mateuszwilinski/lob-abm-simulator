@@ -66,9 +66,10 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         simulation["last_id"] += 1
         order = create_mkt_order(agent, book.symbol, simulation["last_id"])
         matched_orders = add_order!(book, order)
+        add_trades!(book, matched_orders)
+        append!(msgs, messages_from_match(matched_orders, book))
 
         rate = agent.market_rate
-        append!(msgs, messages_from_match(matched_orders, book))
     elseif msg["action"] == "LIMIT_ORDER"
         price = mid_price(book) + randn() * agent.sigma  # TODO: maybe we should add rounding to ticks?
         if isnan(price)
@@ -77,12 +78,13 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         simulation["last_id"] += 1
         order = create_lmt_order(agent, book.symbol, simulation["last_id"], price)
         matched_orders = add_order!(book, order)
+        add_trades!(book, matched_orders)
+        append!(msgs, messages_from_match(matched_orders, book))
         if get_size(order) > 0
             agent.orders[order.id] = order
         end
 
         rate = agent.limit_rate
-        append!(msgs, messages_from_match(matched_orders, book))
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
             order_id = rand(keys(agent.orders))

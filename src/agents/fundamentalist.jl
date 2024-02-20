@@ -48,6 +48,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
         order = LimitOrder(expected_price, 1, is_bid, simulation["last_id"], agent.id, book.symbol)
         # TODO: Should the order size be a parameter? Should it be random?
         matched_orders = add_order!(book, order)
+        add_trades!(book, matched_orders)
         if get_size(order) > 0
             agent.orders[order.id] = order
         end
@@ -91,7 +92,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
             delete!(agent.orders, msg["order_id"])
         end
     else
-        throw(error("Unknown action for a Noise Trader."))
+        throw(error("Unknown action for a Fundamental Trader."))
     end
     return msgs
 end

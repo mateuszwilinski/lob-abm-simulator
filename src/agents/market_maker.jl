@@ -52,6 +52,7 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
             simulation["last_id"] += 1
             order = LimitOrder(ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id, book.symbol)
             matched_orders = add_order!(book, order)
+            add_trades!(book, matched_orders)
             if get_size(order) > 0
                 agent.orders[order.id] = order
             end
@@ -60,6 +61,7 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
             simulation["last_id"] += 1
             order = LimitOrder(bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id, book.symbol)
             matched_orders = add_order!(book, order)
+            add_trades!(book, matched_orders)
             if get_size(order) > 0
                 agent.orders[order.id] = order
             end
