@@ -35,6 +35,15 @@ LimitOrder(
     symbol::String
     ) = LimitOrder(price, Ref(size), is_bid, id, agent, symbol)
 
+struct Trade
+    price::Float64
+    size::Int64
+    active_order::Int64
+    passive_order::Int64
+    active_agent::Int64
+    passive_agent::Int64
+end
+    
 """
     get_size(o)
 
