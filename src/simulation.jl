@@ -80,7 +80,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         msg = dequeue!(messages)
 
         # check time and update simulation state if needed
-        if msg["activation_time"] > simulation["current_time"]
+        if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results for end_time and initial_time
             update_mid_price!(simulation, previous_time, book)
             simulation["snapshots"][simulation["current_time"]] = market_depth(book)
             simulation["trades"][simulation["current_time"]] = market_trades(book)
@@ -98,6 +98,5 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         new_msgs = action!(agent, book, agents, params, simulation, msg)
         add_new_msgs!(messages, new_msgs)
     end
-    println(simulation["trades"])
     return simulation
 end
