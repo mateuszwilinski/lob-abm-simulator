@@ -74,6 +74,7 @@ function main()
                             2*N+i,
                             mt_rate,
                             exit_time,
+                            0.0,
                             mt_size,
                             chunk
                             )

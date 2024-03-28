@@ -35,38 +35,32 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
     # agent trades
     if msg["action"] == "BIG_ORDER"
         # smaller market orders
-        is_bid = rand(Bool)
-        K = floor(Int64, agent.size / agent.chunk)
-        for k in 1:K
+        is_bid = rand(Bool)  # TODO: maybe this should be done at the message creation?
+        order_time = 0
+        chunk_sum = 0
+        while chunk_sum < agent.size
             mrkt_msg = Dict{String, Union{String, Int64, Float64, Bool}}()
             mrkt_msg["recipient"] = agent.id
             mrkt_msg["book"] = book.symbol
-            mrkt_msg["activation_time"] = msg["activation_time"] + k * agent.exit_time
             mrkt_msg["activation_priority"] = 1
             mrkt_msg["action"] = "MARKET_ORDER"
-
-            mrkt_msg["chunk"] = agent.chunk
             mrkt_msg["is_bid"] = is_bid
+
+            # next chunk activation time
+            order_time += round(Int64, max(1, randn()*agent.time_sigma + agent.exit_time))
+            mrkt_msg["activation_time"] = msg["activation_time"] + order_time
+
+            # next chunk size
+            chunk_temp = round(Int64, max(1, randn()*agent.chunk_sigma + agent.chunk))
+            chunk_temp = min(agent.size - chunk_sum, chunk_temp)
+            mrkt_msg["chunk"] = chunk_temp
+            chunk_sum += chunk_temp
 
             push!(msgs, mrkt_msg)
         end
-        last_chunk = agent.size - K * agent.chunk
-        if last_chunk > 0
-            mrkt_msg = Dict{String, Union{String, Int64, Float64, Bool}}()
-            mrkt_msg["recipient"] = agent.id
-            mrkt_msg["book"] = book.symbol
-            mrkt_msg["activation_time"] = msg["activation_time"] + (K+1) * agent.exit_time
-            mrkt_msg["activation_priority"] = 1
-            mrkt_msg["action"] = "MARKET_ORDER"
-
-            mrkt_msg["chunk"] = last_chunk
-            mrkt_msg["is_bid"] = is_bid
-            
-            push!(msgs, [mrkt_msg])
-        end
 
         # next big order
-        activation_time_diff = ceil(Int64, K * agent.exit_time + rand(Exponential(agent.rate)))
+        activation_time_diff = ceil(Int64, order_time + rand(Exponential(agent.rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff
         push!(msgs, response)

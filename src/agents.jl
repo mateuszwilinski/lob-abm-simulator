@@ -47,17 +47,21 @@ struct MarketTaker <: Agent
     orders::Dict{Int64, LimitOrder}
     rate::Float64
     exit_time::Int64
+    time_sigma::Float64
     size::Int64
     chunk::Int64
+    chunk_sigma::Float64
 end
 
 MarketTaker(
     id::Int64,
     rate::Float64,
     exit_time::Int64,
+    time_sigma::Float64,
     size::Int64,
-    chunk::Int64
-    ) = MarketTaker(id, Dict{Int64, LimitOrder}(), rate, exit_time, size, chunk)
+    chunk::Int64,
+    chunk_sigma::Float64
+    ) = MarketTaker(id, Dict{Int64, LimitOrder}(), rate, exit_time, time_sigma, size, chunk, chunk_sigma)
 
 struct Chartist <: Agent
     id::Int64
