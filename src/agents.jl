@@ -66,33 +66,45 @@ MarketTaker(
 struct Chartist <: Agent
     id::Int64
     orders::Dict{Int64, LimitOrder}
-    rate::Float64
+    limit_rate::Float64
+    market_rate::Float64
     coeff::Float64
     sigma::Float64
     horizon::Int64
+    size::Int64
+    size_sigma::Float64
 end
 
 Chartist(
     id::Int64,
-    rate::Float64,
+    limit_rate::Float64,
+    market_rate::Float64,
     coeff::Float64,
     sigma::Float64,
-    horizon::Int64
-    ) = Chartist(id, Dict{Int64, LimitOrder}(), rate, coeff, sigma, horizon)
+    horizon::Int64,
+    size::Int64,
+    size_sigma::Float64
+    ) = Chartist(id, Dict{Int64, LimitOrder}(), limit_rate, market_rate, coeff, sigma, horizon, size, size_sigma)
 
 struct Fundamentalist <: Agent
     id::Int64
     orders::Dict{Int64, LimitOrder}
-    rate::Float64
+    limit_rate::Float64
+    market_rate::Float64
     coeff::Float64
     sigma::Float64
     horizon::Int64
+    size::Int64
+    size_sigma::Float64
 end
 
 Fundamentalist(
     id::Int64,
-    rate::Float64,
+    limit_rate::Float64,
+    market_rate::Float64,
     coeff::Float64,
     sigma::Float64,
-    horizon::Int64
-    ) = Fundamentalist(id, Dict{Int64, LimitOrder}(), rate, coeff, sigma, horizon)
+    horizon::Int64,
+    size::Int64,
+    size_sigma::Float64
+    ) = Fundamentalist(id, Dict{Int64, LimitOrder}(), limit_rate, market_rate, coeff, sigma, horizon, size, size_sigma)

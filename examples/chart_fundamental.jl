@@ -76,25 +76,32 @@ function main()
                             exit_time,
                             0.0,
                             mt_size,
-                            chunk
+                            chunk,
+                            0.0
                             )
     end
     for i in 1:N
         agents[3*N+i] = Chartist(
                             3*N+i,
                             ch_rate,
+                            ch_rate,
                             coeff,
                             sigma,
-                            horizon
+                            horizon,
+                            1,
+                            0.0
                             )
     end
     for i in 1:N
         agents[4*N+i] = Fundamentalist(
                             4*N+i,
                             ch_rate,
+                            ch_rate,
                             coeff,
                             sigma,
-                            horizon
+                            horizon,
+                            1,
+                            0.0
                             )
     end
 
@@ -140,26 +147,26 @@ function main()
     simulation_outcome = run_simulation(agents, book, messages, params)
     
     # Save results
-    mid_price = zeros(simulation_outcome["current_time"], 2)
-    for (i, p) in enumerate(simulation_outcome["mid_price"])
-        mid_price[i, 1] = i
-        mid_price[i, 2] = p
-    end
-    writedlm(string("../plots/results/mid_price.txt"), mid_price, ";")
-    transactions = zeros(0, 3)
-    for (t, v) in simulation_outcome["trades"]
-        for pair in v
-            transactions = vcat(transactions, [t pair[1] pair[2]])
-        end
-    end
-    writedlm(string("../plots/results/trades.txt"), transactions, ";")
-    limit_orders = zeros(0, 3)
-    for (t, v) in simulation_outcome["snapshots"]
-        for i in 1:size(v)[1]
-            limit_orders = vcat(limit_orders, [t v[i, 1] v[i, 2]])
-        end
-    end
-    writedlm(string("../plots/results/orders.txt"), limit_orders, ";")
+    # mid_price = zeros(simulation_outcome["current_time"], 2)
+    # for (i, p) in enumerate(simulation_outcome["mid_price"])
+    #     mid_price[i, 1] = i
+    #     mid_price[i, 2] = p
+    # end
+    # writedlm(string("../plots/results/mid_price.txt"), mid_price, ";")
+    # transactions = zeros(0, 3)
+    # for (t, v) in simulation_outcome["trades"]
+    #     for pair in v
+    #         transactions = vcat(transactions, [t pair[1] pair[2]])
+    #     end
+    # end
+    # writedlm(string("../plots/results/trades.txt"), transactions, ";")
+    # limit_orders = zeros(0, 3)
+    # for (t, v) in simulation_outcome["snapshots"]
+    #     for i in 1:size(v)[1]
+    #         limit_orders = vcat(limit_orders, [t v[i, 1] v[i, 2]])
+    #     end
+    # end
+    # writedlm(string("../plots/results/orders.txt"), limit_orders, ";")
 end
 
 main()
