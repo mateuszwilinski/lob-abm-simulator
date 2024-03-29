@@ -2,8 +2,9 @@
 using Test
 
 include("../src/orders.jl")
-include("../src/agents.jl")
 include("../src/books.jl")
+include("../src/agents.jl")
+include("../src/agents/market_taker.jl")
 include("../src/matching.jl")
 include("../src/trading.jl")
 
@@ -19,24 +20,6 @@ book = Book(
     "ABC",
     Vector{Trade}()
     )
-
-# Create agents
-# limit_rate = 1.0
-# market_rate = 1.0
-# cancel_rate = 1.0
-# sigma = 0.2
-
-# agents = Dict{Int64, Agent}()
-# for i in 1:6
-#     agents[i] = NoiseTrader(
-#                         i,
-#                         Dict{Int64, LimitOrder}(),
-#                         limit_rate,
-#                         market_rate,
-#                         cancel_rate,
-#                         sigma
-#                         )
-# end
 
 agents = Dict{Int64, Agent}()
 for i in 1:6
@@ -79,6 +62,17 @@ if get_size(limit_order) > 0
     agents[limit_order.agent].orders[limit_order.id] = limit_order
 end
 remove_matched_orders!(matched_orders, agents)
+
+# create market taker
+
+agent = MarketTaker(7, 3.4, 3, 0.0, 10, 2, 0.0)
+simulation = Dict{String, Int64}()
+simulation["last_id"] = 9
+params = Dict{String, Int64}()
+msg = Dict{String, Union{String, Int64, Float64, Bool}}()
+msg["activation_time"] = 1
+msg["action"] = "BIG_ORDER"
+msgs = action!(agent, book, agents, params, simulation, msg)
 
 #
 # LOB Tests
@@ -134,4 +128,18 @@ remove_matched_orders!(matched_orders, agents)
     end
 end
 
-
+@testset verbose=true "agents" begin
+    @testset "market taker" begin
+        expected_time = 1
+        taker_size = 0
+        for message in msgs
+            if message["action"] == "MARKET_ORDER"
+                expected_time += 3
+                taker_size += 2
+                @test message["chunk"] == 2
+                @test message["activation_time"] == expected_time
+            end
+        end
+        @test taker_size == 10
+    end
+end
