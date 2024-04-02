@@ -5,7 +5,7 @@
 Adds "order" (limit order) to the "book".
 """
 function add_order!(book::Book, order::LimitOrder)
-    matched_orders = Vector{Tuple{Int64, Int64}}()
+    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64}}()
     if order.is_bid
         while (order.price >= book.best_ask) & (get_size(order) > 0)
             append!(matched_orders, match_order!(book.asks[book.best_ask], order))
@@ -44,7 +44,7 @@ end
 Adds "order" (market order) to the "book".
 """
 function add_order!(book::Book, order::MarketOrder)
-    matched_orders = Vector{Tuple{Int64, Int64}}()
+    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64}}()
     if order.is_bid
         while !isnan(book.best_ask) & (get_size(order) > 0)
             append!(matched_orders, match_order!(book.asks[book.best_ask], order))
@@ -76,19 +76,24 @@ correct side and has the correct price.
 """
 function match_order!(book_level::OrderedSet{LimitOrder},
                       order::Order)
-    matched_orders = Vector{Tuple{Int64, Int64}}()
+    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64}}()
     for o in book_level
-        push!(matched_orders, (o.agent, o.id))
         if o.size[] == order.size[]
+            push!(matched_orders, (o.agent, o.id, order.agent,
+                                   order.id, get_size(o), o.price))
             o.size[] = 0
             delete!(book_level, o)
             order.size[] = 0
             break
         elseif o.size[] > order.size[]
+            push!(matched_orders, (o.agent, o.id, order.agent,
+                                   order.id, get_size(order), o.price))
             o.size[] -= order.size[]
             order.size[] = 0
             break
         else
+            push!(matched_orders, (o.agent, o.id, order.agent,
+                                   order.id, get_size(o), o.price))
             order.size[] -= o.size[]
             o.size[] = 0
             delete!(book_level, o)
@@ -137,5 +142,20 @@ function update_best_bid!(book::Book)
         book.best_bid = NaN
     else
         book.best_bid = maximum(keys(book.bids))
+    end
+end
+
+"""
+    add_trades!(book, matched_orders)
+
+Adds trades to the book.
+"""
+function add_trades!(book::Book,
+                      matched_orders::Vector{Tuple{Int64, Int64, Int64,
+                                                   Int64, Int64, Float64}})
+    for (matched_agent, matched_order, active_agent,
+         active_order, size, price) in matched_orders
+        push!(book.trades, Trade(price, size, active_order, matched_order,
+                                 active_agent, matched_agent))
     end
 end

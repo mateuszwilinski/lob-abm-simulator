@@ -7,18 +7,27 @@ import Distributions: Exponential
 Initiate NoiseTrader "agent" on the "book", for simulation with "params".
 """
 function initiate!(agent::Chartist, book::Book, params::Dict)
-    msg = Dict{String, Union{String, Int64, Float64, Bool}}()
-    msg["recipient"] = agent.id
-    msg["book"] = book.symbol
+    lmt_msg = Dict{String, Union{String, Int64, Float64, Bool}}()
+    lmt_msg["recipient"] = agent.id
+    lmt_msg["book"] = book.symbol
 
-    msg["activation_time"] = ceil(Int64, params["initial_time"] + agent.horizon +
-                                  rand(Exponential(agent.rate)))
-    msg["activation_priority"] = 1
+    lmt_msg["activation_time"] = ceil(Int64, params["initial_time"] + agent.horizon +
+                                  rand(Exponential(agent.limit_rate)))
+    lmt_msg["activation_priority"] = 1
+    lmt_msg["action"] = "LIMIT_ORDER"
     
-    msg["action"] = "LIMIT_ORDER"
+    mkt_msg = Dict{String, Union{String, Int64, Float64, Bool}}()
+    mkt_msg["recipient"] = agent.id
+    mkt_msg["book"] = book.symbol
+
+    mkt_msg["activation_time"] = ceil(Int64, params["initial_time"] + agent.horizon +
+                                  rand(Exponential(agent.market_rate)))
+    mkt_msg["activation_priority"] = 1
+    mkt_msg["action"] = "MARKET_ORDER"
     
     msgs = Vector{Dict}()
-    push!(msgs, msg)
+    push!(msgs, mkt_msg)
+    push!(msgs, lmt_msg)
     return msgs
 end
 
@@ -37,18 +46,15 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         # sending limit order
         current_mid_price = mid_price(book)
         previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
-        ret = agent.coeff * (current_mid_price - previous_mid_price) +
-              randn() * agent.sigma
-        if isnan(ret)
-            ret = 0.0  # TODO: Is it correct? This should happen for NaN mid price (empty book)
-        end
-        expected_price = current_mid_price + ret
-        is_bid = (ret < 0.0)
+        ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
+        expected_price = current_mid_price + ret  # TODO: what if it's a NaN?
 
+        is_bid = (ret < 0.0)
         simulation["last_id"] += 1
-        order = LimitOrder(expected_price, 1, is_bid, simulation["last_id"], agent.id, book.symbol)
-        # TODO: Should the order size be a parameter? Should it be random?
+        order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+        order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
         matched_orders = add_order!(book, order)
+        add_trades!(book, matched_orders)
         if get_size(order) > 0
             agent.orders[order.id] = order
         end
@@ -77,7 +83,32 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         push!(msgs, expire)
 
         # agent sends next order message
-        activation_time_diff = ceil(Int64, rand(Exponential(agent.rate)))
+        activation_time_diff = ceil(Int64, rand(Exponential(agent.limit_rate)))
+        response = copy(msg)
+        response["activation_time"] += activation_time_diff
+        push!(msgs, response)
+    elseif msg["action"] == "MARKET_ORDER"
+        # sending market order
+        current_mid_price = mid_price(book)
+        previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
+        ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
+
+        if (book.best_ask - book.best_bid - 2.0 * abs(ret)) < 0.0
+            expected_price = current_mid_price + ret  # TODO: what if it's a NaN?
+            is_bid = (ret < 0.0)
+            simulation["last_id"] += 1
+            order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+            order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
+            matched_orders = add_order!(book, order)
+            add_trades!(book, matched_orders)
+            if get_size(order) > 0
+                agent.orders[order.id] = order
+            end
+            append!(msgs, messages_from_match(matched_orders, book))
+        end  # TODO: should we cancel inconsistent limit orders in this case?
+
+        # agent sends next order message
+        activation_time_diff = ceil(Int64, rand(Exponential(agent.market_rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff
         push!(msgs, response)
@@ -92,7 +123,7 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
             delete!(agent.orders, msg["order_id"])
         end
     else
-        throw(error("Unknown action for a Noise Trader."))
+        throw(error("Unknown action for a Chartist Trader."))
     end
     return msgs
 end

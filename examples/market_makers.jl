@@ -26,6 +26,7 @@ function main()
     params["end_time"] = end_time
     params["initial_time"] = 1
     params["fundamental_price"] = 10.0
+    params["snapshots"] = false
 
     # Build agents
     limit_rate = 0.6
@@ -82,7 +83,8 @@ function main()
         NaN,
         NaN,
         params["initial_time"],
-        "ABC"
+        "ABC",
+        Vector{Trade}()
     )
     
     book.bids = bids

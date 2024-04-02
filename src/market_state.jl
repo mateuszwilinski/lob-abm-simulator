@@ -25,6 +25,18 @@ function market_depth(book::Book)
         depth[i + bids_size, 1] = p
         depth[i + bids_size, 2] = sum(get_size(o) for o in book.asks[p])
     end
-
     return depth
+end
+
+"""
+    market_trades(book)
+
+Return all trades in the book.
+"""
+function market_trades(book::Book)
+    ts = Vector{Tuple{Float64, Int64}}()
+    for t in book.trades
+        push!(ts, (t.price, t.size))
+    end
+    return ts
 end
