@@ -22,7 +22,7 @@ Build and run simulation with market makers and noise agents.
 function main()
     # Command line parameters
     end_time = try parse(Int64, ARGS[1]) catch e 36000 end  # simulation length
-    # setting = try parse(Int64, ARGS[2]) catch e 1 end  # simulation setting
+    setting = try parse(Int64, ARGS[2]) catch e 1 end  # simulation setting
 
     # Simulation parameters
     params = Dict()
@@ -247,14 +247,14 @@ function main()
         mid_price[i, 1] = i
         mid_price[i, 2] = p
     end
-    writedlm(string("../plots/results/mid_price.csv"), mid_price, ";")
+    writedlm(string("../plots/results/mid_price_", setting, ".csv"), mid_price, ";")
     transactions = zeros(0, 3)
     for (t, v) in simulation_outcome["trades"]
         for pair in v
             transactions = vcat(transactions, [t pair[1] pair[2]])
         end
     end
-    writedlm(string("../plots/results/trades.csv"), transactions, ";")
+    writedlm(string("../plots/results/trades_", setting, ".csv"), transactions, ";")
     if params["snapshots"]
         limit_orders = zeros(0, 3)
         for (t, v) in simulation_outcome["snapshots"]
@@ -262,7 +262,7 @@ function main()
                 limit_orders = vcat(limit_orders, [t v[i, 1] v[i, 2]])
             end
         end
-        writedlm(string("../plots/results/orders.csv"), limit_orders, ";")
+        writedlm(string("../plots/results/orders_", setting, ".csv"), limit_orders, ";")
     end
 end
 
