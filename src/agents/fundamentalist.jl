@@ -48,7 +48,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
         ret = agent.coeff * (params["fundamental_price"] - current_mid_price) + randn() * agent.sigma
         expected_price = current_mid_price + ret
 
-        is_bid = (ret < 0.0)
+        is_bid = (ret > 0.0)
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
         order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
@@ -92,7 +92,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
         ret = agent.coeff * (params["fundamental_price"] - current_mid_price) + randn() * agent.sigma
 
         if (book.best_ask - book.best_bid - 2.0 * abs(ret)) < 0.0
-            is_bid = (ret < 0.0)
+            is_bid = (ret > 0.0)
             simulation["last_id"] += 1
             order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
             order = MarketOrder(order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
