@@ -29,7 +29,7 @@ function main()
     params["end_time"] = end_time
     params["initial_time"] = 1  # TODO: Initial time cannot be zero or negative.
     params["fundamental_price"] = 10.5
-    params["snapshots"] = false
+    params["snapshots"] = true
 
     # Build agents
     limit_rate = 0.6
@@ -47,7 +47,7 @@ function main()
     chunk = 1
 
     ch_rate = 3.0
-    coeff = 1.2
+    coeff = 0.2
     horizon = 5
 
     agents = Dict{Int64, Agent}()
@@ -148,26 +148,26 @@ function main()
     simulation_outcome = run_simulation(agents, book, messages, params)
     
     # Save results
-    # mid_price = zeros(simulation_outcome["current_time"], 2)
-    # for (i, p) in enumerate(simulation_outcome["mid_price"])
-    #     mid_price[i, 1] = i
-    #     mid_price[i, 2] = p
-    # end
-    # writedlm(string("../plots/results/mid_price.txt"), mid_price, ";")
-    # transactions = zeros(0, 3)
-    # for (t, v) in simulation_outcome["trades"]
-    #     for pair in v
-    #         transactions = vcat(transactions, [t pair[1] pair[2]])
-    #     end
-    # end
-    # writedlm(string("../plots/results/trades.txt"), transactions, ";")
-    # limit_orders = zeros(0, 3)
-    # for (t, v) in simulation_outcome["snapshots"]
-    #     for i in 1:size(v)[1]
-    #         limit_orders = vcat(limit_orders, [t v[i, 1] v[i, 2]])
-    #     end
-    # end
-    # writedlm(string("../plots/results/orders.txt"), limit_orders, ";")
+    mid_price = zeros(simulation_outcome["current_time"], 2)
+    for (i, p) in enumerate(simulation_outcome["mid_price"])
+        mid_price[i, 1] = i
+        mid_price[i, 2] = p
+    end
+    writedlm(string("../plots/results/mid_price.txt"), mid_price, ";")
+    transactions = zeros(0, 3)
+    for (t, v) in simulation_outcome["trades"]
+        for pair in v
+            transactions = vcat(transactions, [t pair[1] pair[2]])
+        end
+    end
+    writedlm(string("../plots/results/trades.txt"), transactions, ";")
+    limit_orders = zeros(0, 3)
+    for (t, v) in simulation_outcome["snapshots"]
+        for i in 1:size(v)[1]
+            limit_orders = vcat(limit_orders, [t v[i, 1] v[i, 2]])
+        end
+    end
+    writedlm(string("../plots/results/orders.txt"), limit_orders, ";")
 end
 
 main()
