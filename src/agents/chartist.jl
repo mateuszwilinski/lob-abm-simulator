@@ -43,7 +43,7 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
     
     # Agent trades
     if msg["action"] == "LIMIT_ORDER"
-        # sending limit order
+        # prepare limit order
         current_mid_price = mid_price(book)
         previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
         ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
@@ -53,12 +53,6 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
         order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
-        matched_orders = add_order!(book, order)
-        add_trades!(book, matched_orders)
-        if get_size(order) > 0
-            agent.orders[order.id] = order
-        end
-        append!(msgs, messages_from_match(matched_orders, book))
 
         # cancel inconsistent orders
         for (order_id, o) in agent.orders
@@ -71,6 +65,14 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
                 delete!(agent.orders, order_id)
             end
         end
+
+        # match new limit order
+        matched_orders = add_order!(book, order)
+        add_trades!(book, matched_orders)
+        if get_size(order) > 0
+            agent.orders[order.id] = order
+        end
+        append!(msgs, messages_from_match(matched_orders, book))
 
         # sending expiration message
         expire = Dict{String, Union{String, Int64, Float64, Bool}}()
@@ -94,11 +96,21 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
 
         if (book.best_ask - book.best_bid - 2.0 * abs(ret)) < 0.0
-            expected_price = current_mid_price + ret  # TODO: what if it's a NaN?
+            # prepare market order
             is_bid = (ret > 0.0)
             simulation["last_id"] += 1
             order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
             order = MarketOrder(order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
+
+            # cancel inconsistent orders
+            for (order_id, o) in agent.orders
+                if o.is_bid != is_bid  # TODO: maybe this should depend on the price of "o" (and the expected price)??
+                    cancel_order!(order_id, book, agent)
+                    delete!(agent.orders, order_id)
+                end
+            end
+
+            # match new market order
             matched_orders = add_order!(book, order)
             add_trades!(book, matched_orders)
             if get_size(order) > 0
