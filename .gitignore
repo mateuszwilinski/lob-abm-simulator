@@ -31,10 +31,10 @@ Manifest.toml
 /plots/
 
 # Notebooks related files
-/notebooks/
+# /notebooks/
+# *.ipynb
 /.idea/
 /.ipynb_checkpoints/
-*.ipynb
 
 # MacBook files
 .DS_Store
