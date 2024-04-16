@@ -23,6 +23,21 @@ function main()
     # Command line parameters
     end_time = try parse(Int64, ARGS[1]) catch e 36000 end  # simulation length
     setting = try parse(Int64, ARGS[2]) catch e 1 end  # simulation setting
+    mm1 = try parse(Int64, ARGS[3]) catch e 10 end  # number of ...
+    mm2 = try parse(Int64, ARGS[4]) catch e 10 end  # number of ...
+    mm3 = try parse(Int64, ARGS[5]) catch e 10 end  # number of ...
+    mt1 = try parse(Int64, ARGS[6]) catch e 10 end  # number of ...
+    mt2 = try parse(Int64, ARGS[7]) catch e 10 end  # number of ...
+    mt3 = try parse(Int64, ARGS[8]) catch e 10 end  # number of ...
+    fund1 = try parse(Int64, ARGS[9]) catch e 10 end  # number of ...
+    fund2 = try parse(Int64, ARGS[10]) catch e 10 end  # number of ...
+    fund3 = try parse(Int64, ARGS[11]) catch e 10 end  # number of ...
+    fund4 = try parse(Int64, ARGS[12]) catch e 10 end  # number of ...
+    chart1 = try parse(Int64, ARGS[13]) catch e 10 end  # number of ...
+    chart2 = try parse(Int64, ARGS[14]) catch e 10 end  # number of ...
+    chart3 = try parse(Int64, ARGS[15]) catch e 10 end  # number of ...
+    chart4 = try parse(Int64, ARGS[16]) catch e 10 end  # number of ...
+    nois1 = try parse(Int64, ARGS[17]) catch e 10 end  # number of ...
 
     # Simulation parameters
     params = Dict()
@@ -33,7 +48,9 @@ function main()
 
     # Agents
     agents = Dict{Int64, Agent}()
-    for i in 1:20
+    first_i = 1
+    last_i = mm1
+    for i in first_i:last_i
         agents[i] = MarketMaker(
             i,
             300.0,
@@ -42,7 +59,9 @@ function main()
             5
         )
     end
-    for i in 21:40
+    first_i += mm1
+    last_i += mm2
+    for i in first_i:last_i
         agents[i] = MarketMaker(
             i,
             3000.0,
@@ -51,7 +70,9 @@ function main()
             5
         )
     end
-    for i in 41:60
+    first_i += mm2
+    last_i += mm3
+    for i in first_i:last_i
         agents[i] = MarketMaker(
             i,
             1500.0,
@@ -61,7 +82,9 @@ function main()
         )
     end
     
-    for i in 61:65
+    first_i += mm3
+    last_i += mt1
+    for i in first_i:last_i
         agents[i] = MarketTaker(
             i,
             3000.0,
@@ -72,7 +95,9 @@ function main()
             1.5
         )
     end
-    for i in 66:70
+    first_i += mt1
+    last_i += mt2
+    for i in first_i:last_i
         agents[i] = MarketTaker(
             i,
             4500.0,
@@ -83,7 +108,9 @@ function main()
             1.5
         )
     end
-    for i in 71:75
+    first_i += mt2
+    last_i += mt3
+    for i in first_i:last_i
         agents[i] = MarketTaker(
             i,
             1500.0,
@@ -94,32 +121,80 @@ function main()
             1.5
         )
     end
-    for i in 76:175
+    first_i += mt3
+    last_i += fund1
+    for i in first_i:last_i
         agents[i] = Fundamentalist(
             i,
             2000.0,
             1000.0,
-            2.0,
+            1.0,
             0.1,
             1000,
             5,
             1.5
         )
     end
-    for i in 176:275
+    first_i += fund1
+    last_i += fund2
+    for i in first_i:last_i
         agents[i] = Fundamentalist(
             i,
             3000.0,
             2000.0,
-            1.0,
+            0.5,
             0.1,
             2000,
             5,
             1.5
         )
     end
-    for i in 276:375
+    first_i += fund2
+    last_i += fund3
+    for i in first_i:last_i
         agents[i] = Fundamentalist(
+            i,
+            4000.0,
+            2000.0,
+            0.2,
+            0.1,
+            4000,
+            5,
+            1.5
+        )
+    end
+    first_i += fund3
+    last_i += fund4
+    for i in first_i:last_i
+        agents[i] = Fundamentalist(
+            i,
+            2000.0,
+            1000.0,
+            0.5,
+            0.1,
+            4000,
+            5,
+            1.5
+        )
+    end
+    first_i += fund3
+    last_i += chart1
+    for i in first_i:last_i
+        agents[i] = Chartist(
+            i,
+            2000.0,
+            1000.0,
+            1.0,
+            0.1,
+            1000,
+            5,
+            1.5
+        )
+    end
+    first_i += chart1
+    last_i += chart2
+    for i in first_i:last_i
+        agents[i] = Chartist(
             i,
             4000.0,
             2000.0,
@@ -130,69 +205,48 @@ function main()
             1.5
         )
     end
-    for i in 376:475
-        agents[i] = Fundamentalist(
-            i,
-            2000.0,
-            1000.0,
-            1.0,
-            0.1,
-            4000,
-            5,
-            1.5
-        )
-    end
-    for i in 476:575
+    first_i += chart2
+    last_i += chart3
+    for i in first_i:last_i
         agents[i] = Chartist(
             i,
             2000.0,
             1000.0,
-            1.5,
-            0.1,
-            1000,
-            5,
-            1.5
-        )
-    end
-    for i in 576:675
-        agents[i] = Chartist(
-            i,
-            4000.0,
-            2000.0,
-            1.0,
-            0.1,
-            4000,
-            5,
-            1.5
-        )
-    end
-    for i in 676:775
-        agents[i] = Chartist(
-            i,
-            2000.0,
-            1000.0,
-            -1.5,
-            0.1,
-            1000,
-            5,
-            1.5
-        )
-    end
-    for i in 776:875
-        agents[i] = Chartist(
-            i,
-            4000.0,
-            2000.0,
             -1.0,
             0.1,
+            1000,
+            5,
+            1.5
+        )
+    end
+    first_i += chart3
+    last_i += chart4
+    for i in first_i:last_i
+        agents[i] = Chartist(
+            i,
+            4000.0,
+            2000.0,
+            -0.5,
+            0.1,
             4000,
             5,
             1.5
         )
     end
-    for i in 876:1875
+    first_i += chart4
+    last_i += nois1
+    for i in first_i:last_i
         agents[i] = NoiseTrader(
             i,
+            2000.0,
+            1000.0,
+            6000.0,
+            1.5
+        )
+    end
+    if last_i < 1000
+        agents[1000] = NoiseTrader(
+            1000,
             2000.0,
             1000.0,
             6000.0,
