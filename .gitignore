@@ -31,8 +31,8 @@ Manifest.toml
 /plots/
 
 # Notebooks related files
-# /notebooks/
-# *.ipynb
+/notebooks/
+*.ipynb
 /.idea/
 /.ipynb_checkpoints/
 
