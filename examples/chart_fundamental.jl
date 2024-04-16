@@ -93,7 +93,7 @@ function main()
                             0.0
                             )
     end
-    for i in 1:N
+    for i in 1:2
         agents[4*N+i] = Fundamentalist(
                             4*N+i,
                             ch_rate,
