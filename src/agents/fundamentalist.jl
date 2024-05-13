@@ -56,16 +56,23 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
         # cancel inconsistent orders
         for (order_id, o) in agent.orders
             if o.is_bid != is_bid
+                if params["save_cancelattions"]
+                    save_cancel!(simulation, order_id, agent)
+                end
                 cancel_order!(order_id, book, agent)
-                delete!(agent.orders, order_id)
             elseif (((o.price > expected_price) && o.is_bid) ||
                     ((o.price < expected_price) && !o.is_bid))
+                if params["save_cancelattions"]
+                    save_cancel!(simulation, order_id, agent)
+                end
                 cancel_order!(order_id, book, agent)
-                delete!(agent.orders, order_id)
             end
         end
 
         # match new limit order
+        if params["save_orders"]
+            save_order!(simulation, order, agent)
+        end
         matched_orders = add_order!(book, order)
         add_trades!(book, matched_orders)
         if get_size(order) > 0
@@ -103,17 +110,19 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
             # cancel inconsistent orders
             for (order_id, o) in agent.orders
                 if o.is_bid != is_bid  # TODO: maybe this should depend on the price of "o" (and the fundamental price)??
+                    if params["save_cancelattions"]
+                        save_cancel!(simulation, order_id, agent)
+                    end
                     cancel_order!(order_id, book, agent)
-                    delete!(agent.orders, order_id)
                 end
             end
 
             # match new market order
+            if params["save_orders"]
+                save_order!(simulation, order, agent)
+            end
             matched_orders = add_order!(book, order)
             add_trades!(book, matched_orders)
-            if get_size(order) > 0
-                agent.orders[order.id] = order
-            end
             append!(msgs, messages_from_match(matched_orders, book))
         end  # TODO: should we cancel inconsistent limit orders in this case?
 
@@ -125,11 +134,13 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         order_id = msg["order_id"]
         if order_id in keys(agent.orders)
+            if params["save_cancelattions"]
+                save_cancel!(simulation, order_id, agent)
+            end
             cancel_order!(order_id, book, agent)
-            delete!(agent.orders, order_id)
         end
     elseif msg["action"] == "UPDATE_ORDER"
-        if get_size(agent.orders[msg["order_id"]]) == 0
+        if msg["order_size"] == 0
             delete!(agent.orders, msg["order_id"])
         end
     else

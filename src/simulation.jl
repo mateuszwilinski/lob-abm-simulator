@@ -6,11 +6,14 @@ import DataStructures: PriorityQueue, dequeue!, enqueue!
 
 Create messages about "matched_orders" for both affected agents and reporting agents.
 """
-function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64, Int64,
-                                                          Int64, Int64, Float64}},
+function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64,
+                                                          Int64, Int64,
+                                                          Int64, Float64,
+                                                          Int64}},
                              book::Book)
     msgs = Vector{Dict}()
-    for (matched_agent, matched_order,) in matched_orders
+    for (matched_agent, matched_order, active_agent, active_order,
+         trade_size, price, order_size) in matched_orders
         # send message to affected agent
         msg = Dict{String, Union{String, Int64, Float64, Bool}}()
         msg["recipient"] = matched_agent
@@ -18,7 +21,8 @@ function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64, Int64,
         msg["activation_time"] = book.time
         msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
         msg["action"] = "UPDATE_ORDER"
-        msg["order_id"] = matched_order  # TODO: seems like we can produce multiple same messages(!!!)
+        msg["order_id"] = matched_order
+        msg["order_size"] = order_size
         push!(msgs, msg)
     end
     return msgs
@@ -59,7 +63,9 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
     simulation = Dict()
     simulation["mid_price"] = zeros(params["end_time"])
     simulation["snapshots"] = Dict{Int64, Matrix}()
-    simulation["trades"] = Dict{Int64, Vector}()
+    simulation["trades"] = zeros(Union{Int64, Float64}, 0, 7)
+    simulation["orders"] = Set{Vector}()
+    simulation["cancellations"] = Set{Vector}()
     simulation["current_time"] = params["initial_time"]
     simulation["last_id"] = params["first_id"]
     previous_time = params["initial_time"]
@@ -85,7 +91,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
             if params["snapshots"]
                 simulation["snapshots"][simulation["current_time"]] = market_depth(book)
             end
-            simulation["trades"][simulation["current_time"]] = market_trades(book)
+            simulation["trades"] = vcat(simulation["trades"], market_trades(book))
 
             previous_time = simulation["current_time"]
             simulation["current_time"] = msg["activation_time"]

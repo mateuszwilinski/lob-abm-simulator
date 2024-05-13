@@ -5,7 +5,7 @@
 Adds "order" (limit order) to the "book".
 """
 function add_order!(book::Book, order::LimitOrder)
-    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64}}()
+    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64, Int64}}()
     if order.is_bid
         while (order.price >= book.best_ask) & (get_size(order) > 0)
             append!(matched_orders, match_order!(book.asks[book.best_ask], order))
@@ -44,7 +44,7 @@ end
 Adds "order" (market order) to the "book".
 """
 function add_order!(book::Book, order::MarketOrder)
-    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64}}()
+    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64, Int64}}()
     if order.is_bid
         while !isnan(book.best_ask) & (get_size(order) > 0)
             append!(matched_orders, match_order!(book.asks[book.best_ask], order))
@@ -76,24 +76,24 @@ correct side and has the correct price.
 """
 function match_order!(book_level::OrderedSet{LimitOrder},
                       order::Order)
-    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64}}()
+    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64, Int64}}()
     for o in book_level
         if o.size[] == order.size[]
-            push!(matched_orders, (o.agent, o.id, order.agent,
-                                   order.id, get_size(o), o.price))
+            push!(matched_orders, (o.agent, o.id, order.agent, order.id,
+                                   get_size(o), o.price, 0))
             o.size[] = 0
             delete!(book_level, o)
             order.size[] = 0
             break
         elseif o.size[] > order.size[]
-            push!(matched_orders, (o.agent, o.id, order.agent,
-                                   order.id, get_size(order), o.price))
             o.size[] -= order.size[]
+            push!(matched_orders, (o.agent, o.id, order.agent, order.id,
+                                   get_size(order), o.price, get_size(o)))
             order.size[] = 0
             break
         else
-            push!(matched_orders, (o.agent, o.id, order.agent,
-                                   order.id, get_size(o), o.price))
+            push!(matched_orders, (o.agent, o.id, order.agent, order.id,
+                                   get_size(o), o.price, 0))
             order.size[] -= o.size[]
             o.size[] = 0
             delete!(book_level, o)
@@ -152,9 +152,9 @@ Adds trades to the book.
 """
 function add_trades!(book::Book,
                       matched_orders::Vector{Tuple{Int64, Int64, Int64,
-                                                   Int64, Int64, Float64}})
+                                                   Int64, Int64, Float64, Int64}})
     for (matched_agent, matched_order, active_agent,
-         active_order, size, price) in matched_orders
+         active_order, size, price,) in matched_orders
         push!(book.trades, Trade(price, size, active_order, matched_order,
                                  active_agent, matched_agent))
     end
