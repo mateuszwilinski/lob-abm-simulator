@@ -67,6 +67,9 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
         order = MarketOrder(msg["chunk"], msg["is_bid"], simulation["last_id"], agent.id, book.symbol)
+        if params["save_orders"]
+            save_order!(simulation, order, agent)
+        end
         matched_orders = add_order!(book, order)
         add_trades!(book, matched_orders)
         append!(msgs, messages_from_match(matched_orders, book))

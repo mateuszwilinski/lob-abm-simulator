@@ -36,8 +36,10 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
         # cancel previous ladder
         if !isempty(agent.orders)
             for order_id in keys(agent.orders)
+                if params["save_cancelattions"]
+                    save_cancel!(simulation, order_id, agent)
+                end
                 cancel_order!(order_id, book, agent)
-                delete!(agent.orders, order_id)
             end
         end
         # build new ladder
@@ -51,6 +53,9 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
             # ask ladder step
             simulation["last_id"] += 1
             order = LimitOrder(ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id, book.symbol)
+            if params["save_orders"]
+                save_order!(simulation, order, agent)
+            end
             matched_orders = add_order!(book, order)
             add_trades!(book, matched_orders)
             if get_size(order) > 0
@@ -60,6 +65,9 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
             # bid ladder step
             simulation["last_id"] += 1
             order = LimitOrder(bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id, book.symbol)
+            if params["save_orders"]
+                save_order!(simulation, order, agent)
+            end
             matched_orders = add_order!(book, order)
             add_trades!(book, matched_orders)
             if get_size(order) > 0
@@ -74,7 +82,7 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
         response["activation_time"] += activation_time_diff
         push!(msgs, response)
     elseif msg["action"] == "UPDATE_ORDER"
-        if get_size(agent.orders[msg["order_id"]]) == 0
+        if msg["order_size"] == 0
             delete!(agent.orders, msg["order_id"])
         end
     else

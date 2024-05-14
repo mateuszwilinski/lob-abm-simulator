@@ -48,7 +48,7 @@ end
 Remove "matched_orders" from "agents" orders.
 """
 function remove_matched_orders!(matched_orders::Vector{Tuple{Int64, Int64, Int64,
-                                                             Int64, Int64, Float64}},
+                                                             Int64, Int64, Float64, Int64}},
                                 agents::Dict{Int64, Agent})
     # check whether the last matching was not partial
     (agent_id, order_id,) = matched_orders[end]
@@ -59,4 +59,4 @@ function remove_matched_orders!(matched_orders::Vector{Tuple{Int64, Int64, Int64
     for (agent_id, order_id,) in matched_orders[1:(end-1)]
         delete!(agents[agent_id].orders, order_id)
     end
-end  # TODO: This function is potentially useless.
+end  # TODO: This function is potentially useless and most likely outdated(!!!).

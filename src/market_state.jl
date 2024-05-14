@@ -34,9 +34,9 @@ end
 Return all trades in the book.
 """
 function market_trades(book::Book)
-    ts = Vector{Tuple{Float64, Int64}}()
+    ts = zeros(Union{Int64, Float64}, 0, 7)
     for t in book.trades
-        push!(ts, (t.price, t.size))
+        ts = vcat(ts, Union{Int64, Float64}[book.time t.price t.size t.active_order t.passive_order t.active_agent t.passive_agent])
     end
     return ts
 end

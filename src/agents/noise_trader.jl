@@ -65,7 +65,15 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
     if msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
         order = create_mkt_order(agent, book.symbol, simulation["last_id"])
+        if params["save_orders"]
+            save_order!(simulation, order, agent)
+        end
         matched_orders = add_order!(book, order)
+        # TODO:
+        # - Maybe trades should go straight to simulation["trades"]?
+        #   - This way we would not have to keep them in book and safe some memory?
+        # - Do we use book.trades for anything else then simulation outcome?
+        #   - We could potentiallly if some agents would react on trades?
         add_trades!(book, matched_orders)
         append!(msgs, messages_from_match(matched_orders, book))
 
@@ -77,6 +85,9 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         end
         simulation["last_id"] += 1
         order = create_lmt_order(agent, book.symbol, simulation["last_id"], price)
+        if params["save_orders"]
+            save_order!(simulation, order, agent)
+        end
         matched_orders = add_order!(book, order)
         add_trades!(book, matched_orders)
         append!(msgs, messages_from_match(matched_orders, book))
@@ -87,14 +98,17 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         rate = agent.limit_rate
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
+            # TODO: Here is where we could report cancelations to simulation outcome!
             order_id = rand(keys(agent.orders))
+            if params["save_cancelattions"]
+                save_cancel!(simulation, order_id, agent)
+            end
             cancel_order!(order_id, book, agent)
-            delete!(agent.orders, order_id)
         end
 
         rate = agent.cancel_rate
     elseif msg["action"] == "UPDATE_ORDER"
-        if get_size(agent.orders[msg["order_id"]]) == 0
+        if msg["order_size"] == 0
             delete!(agent.orders, msg["order_id"])
         end
         return msgs
