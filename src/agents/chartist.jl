@@ -46,10 +46,15 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         # prepare limit order
         current_mid_price = mid_price(book)
         previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
-        ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
-        expected_price = current_mid_price + ret  # TODO: what if it's a NaN?
+        if isnan(current_mid_price) | isnan(previous_mid_price)
+            ret = randn() * agent.sigma
+            expected_price = params["fundamental_price"] + ret
+        else
+            ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
+            expected_price = current_mid_price + ret
+        end
 
-        is_bid = (ret > 0.0)
+        is_bid = (ret > 0.0)  # TODO: what to do when ret = 0.0 ???
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
         order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
