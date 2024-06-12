@@ -45,10 +45,14 @@ end
 
 Update the mid price state in the simulation state dictionary.
 """
-function update_mid_price!(simulation::Dict, previous_time::Int64, book::Book)
+function update_mid_price!(simulation::Dict, previous_time::Int64, new_time::Int64, book::Book)
     simulation["mid_price"][previous_time:(simulation["current_time"]-1)] .=
                                                 simulation["mid_price"][previous_time]
-    simulation["mid_price"][simulation["current_time"]] = mid_price(book)
+    if new_time > size(simulation["mid_price"])[1]
+        simulation["mid_price"][simulation["current_time"]:end] = mid_price(book)
+    else
+        simulation["mid_price"][simulation["current_time"]:(new_time-1)] = mid_price(book)
+    end
 end
 
 """
@@ -87,7 +91,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
 
         # check time and update simulation state if needed
         if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results for end_time and initial_time
-            update_mid_price!(simulation, previous_time, book)
+            update_mid_price!(simulation, previous_time, msg["activation_time"], book)
             if params["snapshots"]
                 simulation["snapshots"][simulation["current_time"]] = market_depth(book)
             end
