@@ -38,7 +38,8 @@ end
 Create new market order with "order_id" for "agent" and "symbol".
 """
 function create_mkt_order(agent::NoiseTrader, symbol::String, order_id::Int64)
-    return MarketOrder(1, rand(Bool), order_id, agent.id, symbol)
+    order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+    return MarketOrder(order_size, rand(Bool), order_id, agent.id, symbol)
 end
 
 """
@@ -48,7 +49,8 @@ Create new limit order with "order_id" and "price" for "agent" and "symbol".
 """
 function create_lmt_order(agent::NoiseTrader, symbol::String,
                           order_id::Int64, price::Float64)
-    return LimitOrder(price, 1, rand(Bool), order_id, agent.id, symbol)
+    order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+    return LimitOrder(price, order_size, rand(Bool), order_id, agent.id, symbol)
 end
 
 """
@@ -79,10 +81,11 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
 
         rate = agent.market_rate
     elseif msg["action"] == "LIMIT_ORDER"
-        price = mid_price(book) + randn() * agent.sigma  # TODO: maybe we should add rounding to ticks?
+        price = mid_price(book)
         if isnan(price)
             price = params["fundamental_price"]  # TODO: this may depend on time
         end
+        price += randn() * agent.sigma
         simulation["last_id"] += 1
         order = create_lmt_order(agent, book.symbol, simulation["last_id"], price)
         if params["save_orders"]
@@ -98,7 +101,6 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         rate = agent.limit_rate
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
-            # TODO: Here is where we could report cancelations to simulation outcome!
             order_id = rand(keys(agent.orders))
             if params["save_cancelattions"]
                 save_cancel!(simulation, order_id, agent)
