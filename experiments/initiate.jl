@@ -198,6 +198,8 @@ function initiate_agents(mm1, mm2, mm3,
             20000.0,
             10000.0,
             60000.0,
+            1.0,
+            5,
             1.5
         )
     end
@@ -207,6 +209,8 @@ function initiate_agents(mm1, mm2, mm3,
             20000.0,
             10000.0,
             60000.0,
+            1.0,
+            5,
             1.5
         )
     end

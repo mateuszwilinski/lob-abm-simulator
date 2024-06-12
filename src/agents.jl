@@ -15,6 +15,8 @@ struct NoiseTrader <: Agent
     market_rate::Float64
     cancel_rate::Float64
     sigma::Float64
+    size::Int64
+    size_sigma::Float64
 end
 
 NoiseTrader(
@@ -22,8 +24,10 @@ NoiseTrader(
     limit_rate::Float64,
     market_rate::Float64,
     cancel_rate::Float64,
-    sigma::Float64
-    ) = NoiseTrader(id, Dict{Int64, LimitOrder}(), limit_rate, market_rate, cancel_rate, sigma)
+    sigma::Float64,
+    size::Int64,
+    size_sigma::Float64
+    ) = NoiseTrader(id, Dict{Int64, LimitOrder}(), limit_rate, market_rate, cancel_rate, sigma, size, size_sigma)
 
 struct MarketMaker <: Agent  # TODO: Maybe we could add knowledge about fundamental price?
     id::Int64
