@@ -45,6 +45,9 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     if msg["action"] == "LIMIT_ORDER"
         # build limit order
         current_mid_price = mid_price(book)
+        if isnan(current_mid_price)
+            current_mid_price = params["fundamental_price"]
+        end
         ret = agent.coeff * (params["fundamental_price"] - current_mid_price) + randn() * agent.sigma
         expected_price = current_mid_price + ret
 
