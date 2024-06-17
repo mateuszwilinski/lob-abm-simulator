@@ -49,9 +49,9 @@ function update_mid_price!(simulation::Dict, previous_time::Int64, new_time::Int
     simulation["mid_price"][previous_time:(simulation["current_time"]-1)] .=
                                                 simulation["mid_price"][previous_time]
     if new_time > size(simulation["mid_price"])[1]
-        simulation["mid_price"][simulation["current_time"]:end] = mid_price(book)
+        simulation["mid_price"][simulation["current_time"]:end] .= mid_price(book)
     else
-        simulation["mid_price"][simulation["current_time"]:(new_time-1)] = mid_price(book)
+        simulation["mid_price"][simulation["current_time"]:(new_time-1)] .= mid_price(book)
     end
 end
 
