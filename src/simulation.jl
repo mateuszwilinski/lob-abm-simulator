@@ -62,8 +62,10 @@ end
 Update the fundamental price state in the parameters dictionary.
 """
 function update_fundamental_price!(params::Dict, current_time::Int64)
-    if haskey(params, "funamental_dynamics")
-        params["fundamental_price"] = params["funamental_dynamics"][current_time]
+    if haskey(params, "fundamental_dynamics")
+        if current_time <= params["end_time"]
+           params["fundamental_price"] = params["fundamental_dynamics"][current_time]
+        end
     end
 end
 
