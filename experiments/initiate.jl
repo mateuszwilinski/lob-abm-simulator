@@ -134,7 +134,7 @@ function initiate_agents(mm1, mm2, mm3,
             1.5
         )
     end
-    first_i += fund3
+    first_i += fund4
     last_i += chart1
     for i in first_i:last_i
         agents[i] = Chartist(
