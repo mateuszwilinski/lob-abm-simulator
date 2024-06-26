@@ -51,16 +51,18 @@ function main()
     params["initial_time"] = 1  # TODO: Initial time cannot be zero or negative.
     params["fundamental_price"] = 100.0
     params["snapshots"] = false
-    params["save_orders"] = false
-    params["save_cancelattions"] = false
-    params["save_features"] = false
+    params["save_orders"] = true
+    params["save_cancelattions"] = true
+    params["save_features"] = true
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
     # sgn = -1
     # for i in 20000:20000:params["end_time"]
     #     sgn *= -1
     #     params["fundamental_dynamics"][i:(i-19999)] .+= (sgn + 1) * 25.0 + params["fundamental_price"]
     # end
-    params["fundamental_dynamics"][Int(end_time / 2):end] .= 0.5 * params["fundamental_price"]
+    params["fundamental_dynamics"][Int(end_time / 4):end] .= 0.7 * params["fundamental_price"]
+    params["fundamental_dynamics"][Int(end_time / 2):end] .= 1.0 * params["fundamental_price"]
+    params["fundamental_dynamics"][Int(3 * end_time / 4):end] .= 0.7 * params["fundamental_price"]
 
     # Agents
     agents, n_agents = initiate_agents(mm1, mm2, mm3, mt1, mt2, mt3, fund1, fund2, fund3, fund4, chart1, chart2, chart3, chart4, nois1)
