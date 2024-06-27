@@ -53,7 +53,6 @@ function main()
     params["snapshots"] = false
     params["save_orders"] = true
     params["save_cancelattions"] = true
-    params["save_features"] = true
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
     # sgn = -1
     # for i in 20000:20000:params["end_time"]
@@ -138,52 +137,6 @@ function main()
             all_orders = vcat(all_orders, [v[1] v[2] v[3] v[4] v[5] v[6] v[7]])
         end
         writedlm(string("../plots/results/orders_", setting, "_2.csv"), all_orders, ";")
-    end
-    if params["save_features"]
-        trades = simulation_outcome["trades"]
-        
-        buy_ratios = zeros(n_agents)
-        market_ratios = zeros(n_agents)
-        mean_size = zeros(n_agents)
-        std_size = zeros(n_agents)
-        mean_times = zeros(n_agents)
-        std_times = zeros(n_agents)
-
-        cancel_ratios = zeros(n_agents)
-        
-        trades_num = zeros(n_agents)
-        traded_volume = zeros(n_agents)
-        
-        for i in 1:n_agents
-            temp_orders = all_orders[all_orders[:, 2].==float(i), :]
-            buy_ratios[i] = sum(temp_orders[:, 5]) / size(temp_orders)[1]
-            market_ratios[i] = 1.0 - sum(temp_orders[:, 7]) / size(temp_orders)[1]
-            mean_size[i] = mean(temp_orders[:, 4])
-            std_size[i] = std(temp_orders[:, 4])
-            temp_times = diff(sort(temp_orders[:, 3]))
-            mean_times[i] = mean(temp_times)
-            std_times[i] = std(temp_times)
-
-            temp_cancels = cancellations[cancellations[:, 2].==float(i), :]
-            cancel_ratios[i] = size(temp_cancels)[1] / size(temp_orders)[1]
-        
-            temp_trades_a = trades[trades[:, 6].==float(i), :]
-            temp_trades_p = trades[trades[:, 7].==float(i), :]
-            trades_num[i] = size(temp_trades_a)[1] + size(temp_trades_p)[1]
-            traded_volume[i] = sum(temp_trades_a[:, 3]) + sum(temp_trades_p[:, 3])
-        end
-        features = hcat(
-            buy_ratios,
-            market_ratios,
-            mean_size,
-            std_size,
-            mean_times,
-            std_times,
-            cancel_ratios,
-            trades_num,
-            traded_volume
-            )
-        writedlm(string("../plots/results/features_", setting, "_2.csv"), features, ";")
     end
 end
 
