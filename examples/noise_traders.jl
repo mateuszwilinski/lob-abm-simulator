@@ -4,6 +4,7 @@ using DelimitedFiles
 include("../src/orders.jl")
 include("../src/books.jl")
 include("../src/agents.jl")
+include("../src/saving_data.jl")
 include("../src/agents/noise_trader.jl")
 include("../src/trading.jl")
 include("../src/matching.jl")
@@ -26,6 +27,8 @@ function main()
     params["initial_time"] = 1
     params["fundamental_price"] = 10.0
     params["snapshots"] = false
+    params["save_orders"] = false
+    params["save_cancelattions"] = false
 
     # Build agents
     limit_rate = 0.6
@@ -41,7 +44,9 @@ function main()
                             limit_rate,
                             market_rate,
                             cancel_rate,
-                            sigma
+                            sigma,
+                            1,
+                            0.0
                             )
     end
 
@@ -86,11 +91,6 @@ function main()
     messages = PriorityQueue()  # TODO: Add correct types
     simulation_outcome = run_simulation(agents, book, messages, params)
     println(simulation_outcome)
-    # for i in keys(simulation_outcome)
-    #     writedlm(string("../results/noise/", i, ".txt"), simulation_outcome[i], ";")
-    # end
-    # TODO: It's surprising to me that even with 100 agents I sometimes get NaNs -- even for longer periods.
-    #       This is something to check(!!!)
 end
 
 main()
