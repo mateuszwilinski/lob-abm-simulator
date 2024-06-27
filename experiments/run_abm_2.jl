@@ -140,6 +140,8 @@ function main()
         writedlm(string("../plots/results/orders_", setting, "_2.csv"), all_orders, ";")
     end
     if params["save_features"]
+        trades = simulation_outcome["trades"]
+        
         buy_ratios = zeros(n_agents)
         market_ratios = zeros(n_agents)
         mean_size = zeros(n_agents)
@@ -165,7 +167,6 @@ function main()
             temp_cancels = cancellations[cancellations[:, 2].==float(i), :]
             cancel_ratios[i] = size(temp_cancels)[1] / size(temp_orders)[1]
         
-            trades = simulation_outcome["trades"]
             temp_trades_a = trades[trades[:, 6].==float(i), :]
             temp_trades_p = trades[trades[:, 7].==float(i), :]
             trades_num[i] = size(temp_trades_a)[1] + size(temp_trades_p)[1]
