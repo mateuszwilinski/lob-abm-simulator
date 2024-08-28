@@ -112,3 +112,17 @@ Fundamentalist(
     size::Int64,
     size_sigma::Float64
     ) = Fundamentalist(id, Dict{Int64, LimitOrder}(), limit_rate, market_rate, coeff, sigma, horizon, size, size_sigma)
+
+struct Sentimentalist <: Agent
+    id::Int64,
+    sentiment::Float64,
+    size::Int64,
+    size_sigma::Float64
+end
+
+Sentimentalist(
+    id::Int64,
+    sentiment::Float64,
+    size::Int64,
+    size_sigma::Float64
+    ) = Sentimentalist(id, sentiment, size, size_sigma)
