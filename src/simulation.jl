@@ -201,8 +201,5 @@ function create_trade!(agent, book, params, simulation)
     trade_order["order_id"] = simulation["last_id"] + 1
     simulation["last_id"] += 1
 
-    # Update trade details in the book and simulation
-    add_trade_to_book!(book, trade_order)  # assuming a function that adds to the order book
-
     return [trade_order]
 end
