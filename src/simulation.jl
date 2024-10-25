@@ -1,5 +1,43 @@
-
 import DataStructures: PriorityQueue, dequeue!, enqueue!
+using Graphs
+
+function create_agent_graph(n_agents::Int, graph_type::String, params::Dict)
+    if graph_type == "erdos_renyi"
+        p = params["p"]
+        return erdos_renyi(n_agents, p)
+        
+    elseif graph_type == "barabasi_albert"
+        m = params["m"]
+        return barabasi_albert(n_agents, m)
+        
+    elseif graph_type == "regular"
+        k = params["k"]
+        if iseven(n_agents * k)
+            return regular_graph(n_agents, k)
+        else
+            error("For a regular graph, `n_agents * k` must be even.")
+        end
+    else
+        error("Unknown graph type: $graph_type")
+    end
+end
+
+function propagate_trade!(messages::PriorityQueue, agent_id::Int, params::Dict, book::Book, activation_time::Int64)
+    graph = params["agent_graph"]
+    neighbors = neighbors(graph, agent_id)
+
+    for neighbor in neighbors
+        if rand() < params["propagation_probability"]
+            # Create a message for the neighbor to consider trading
+            msg = Dict{String, Union{Int64, String, Bool, Float64}}()
+            msg["recipient"] = neighbor
+            msg["book"] = book.symbol
+            msg["activation_time"] = activation_time + 1  # Slight delay to simulate reaction time TODO: add more interesting delay mechanicms 
+            msg["action"] = "CONSIDER_TRADE"
+            enqueue!(messages, msg, (msg["activation_time"], 0))
+        end
+    end
+end
 
 """
     messages_from_match(matched_orders, book, params)
@@ -19,7 +57,7 @@ function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64,
         msg["recipient"] = matched_agent
         msg["book"] = book.symbol
         msg["activation_time"] = book.time
-        msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
+        msg["activation_priority"] = 0
         msg["action"] = "UPDATE_ORDER"
         msg["order_id"] = matched_order
         msg["order_size"] = order_size
@@ -46,7 +84,6 @@ end
 Update the mid price state in the simulation state dictionary.
 """
 function update_mid_price!(simulation::Dict, previous_time::Int64, new_time::Int64, book::Book)
-    # TODO: This part is very confusing. Needs a clear update!
     simulation["mid_price"][previous_time:(simulation["current_time"]-1)] .=
                                                 simulation["mid_price"][previous_time]
     if new_time >= size(simulation["mid_price"])[1]
@@ -104,7 +141,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         msg = dequeue!(messages)
 
         # check time and update simulation state if needed
-        if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results for end_time and initial_time
+        if msg["activation_time"] > simulation["current_time"]
             update_mid_price!(simulation, previous_time, msg["activation_time"], book)
             update_fundamental_price!(params, msg["activation_time"])
             if params["snapshots"]
@@ -126,4 +163,46 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         add_new_msgs!(messages, new_msgs)
     end
     return simulation
+end
+
+function action!(agent, book, agents, params, simulation, msg)
+    if msg["action"] == "TRADE"
+        # Normal trade action for this agent
+        new_msgs = create_trade!(agent, book, params, simulation)
+        
+        # If this agent executed a trade, propagate to neighbors
+        propagate_trade!(messages, agent.id, params, book, msg["activation_time"])
+        
+        return new_msgs
+
+    elseif msg["action"] == "CONSIDER_TRADE"
+        # This agent considers trading due to neighbor influence
+        if rand() < params["trade_decision_probability"]
+            # The agent decides to trade
+            new_msgs = create_trade!(agent, book, params, simulation)
+            
+            # Propagate to its own neighbors
+            propagate_trade!(messages, agent.id, params, book, msg["activation_time"])
+            
+            return new_msgs
+        end
+    end
+    
+    return []
+end
+
+function create_trade!(agent, book, params, simulation)
+    # Define the trade message or order
+    trade_order = Dict{String, Union{String, Int64, Float64, Bool}}()
+    trade_order["recipient"] = agent.id
+    trade_order["book"] = book.symbol
+    trade_order["activation_time"] = simulation["current_time"]
+    trade_order["action"] = "TRADE"
+    trade_order["order_id"] = simulation["last_id"] + 1
+    simulation["last_id"] += 1
+
+    # Update trade details in the book and simulation
+    add_trade_to_book!(book, trade_order)  # assuming a function that adds to the order book
+
+    return [trade_order]
 end
