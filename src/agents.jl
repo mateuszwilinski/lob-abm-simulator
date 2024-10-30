@@ -19,6 +19,8 @@ struct NoiseTrader <: Agent
     size_sigma::Float64
 end
 
+include("agents/noise_trader.jl")
+
 NoiseTrader(
     id::Int64,
     limit_rate::Float64,
@@ -38,6 +40,8 @@ struct MarketMaker <: Agent  # TODO: Maybe we could add knowledge about fundamen
     size::Int64
 end
 
+include("agents/market_maker.jl")
+
 MarketMaker(
     id::Int64,
     rate::Float64,
@@ -56,6 +60,8 @@ struct MarketTaker <: Agent
     chunk::Int64
     chunk_sigma::Float64
 end
+
+include("agents/market_taker.jl")
 
 MarketTaker(
     id::Int64,
@@ -78,6 +84,8 @@ struct Chartist <: Agent
     size::Int64
     size_sigma::Float64
 end
+
+include("agents/chartist.jl")
 
 Chartist(
     id::Int64,
@@ -102,6 +110,8 @@ struct Fundamentalist <: Agent
     size_sigma::Float64
 end
 
+include("agents/fundamentalist.jl")
+
 Fundamentalist(
     id::Int64,
     limit_rate::Float64,
@@ -112,3 +122,4 @@ Fundamentalist(
     size::Int64,
     size_sigma::Float64
     ) = Fundamentalist(id, Dict{Int64, LimitOrder}(), limit_rate, market_rate, coeff, sigma, horizon, size, size_sigma)
+ 
