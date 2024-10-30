@@ -3,16 +3,50 @@ using DelimitedFiles
 using Statistics
 
 """
+    agents_selection(x, agents)
+
+Selects all the "x", which belong to "agents"
+"""
+function agents_selection(x::Vector{Float64}, agents::Vector{Int64})
+    selection = zeros(Bool, length(x))
+    for agent in agents
+        selection = selection .| (x .== float(agent))
+    end
+    return selection
+end
+
+"""
+    combined_agents(i, n_agents, ext_agents, ext_noise)
+
+Computes all the agents to be combined with agent "i" in a setting with
+"n_agents" base agents, "ext_agents" extended agents and "ext_noise" noise
+agents per each extended agent.
+"""
+function combined_agents(i::Int64, n_agents::Int64, ext_agents::Int64, ext_noise::Int64)
+    agents = [i]
+    if i <= ext_agents
+        for j in 1:ext_noise
+            append!(agents, n_agents + i + (j - 1) * ext_agents)
+        end
+    end
+    return agents
+end
+
+"""
     main()
 
 Cumpute features based on simulation results.
 """
 function main()
-    # Parameters
-    K = 30
-    simulation_type = 2
-    n_agents = 1530
+    # Command line parameters
+    n_agents = try parse(Int64, ARGS[1]) catch e 1590 end  # number of base agents
+    ext_agents = try parse(Int64, ARGS[2]) catch e 530 end  # number of agents to be extended
+    ext_noise = try parse(Int64, ARGS[3]) catch e 0 end  # number of noise agents per extended agent
+    simulation_type = try parse(Int64, ARGS[4]) catch e 2 end  # experiment number
+    K = try parse(Int64, ARGS[5]) catch e 5 end  # last setting to be used
+    name = try parse(Int64, ARGS[6]) catch e 5 end  # 
 
+    # Parameters
     horizon_short = 10000
     horizon = 20000
     horizon_long = 40000
@@ -61,7 +95,9 @@ function main()
         long_profits = zeros(n_agents)
 
         for i in 1:n_agents
-            temp_orders = orders[orders[:, 2].==float(i), :]
+            i_agents = combined_agents(i, n_agents, ext_agents, ext_noise)
+
+            temp_orders = orders[agents_selection(orders[:, 2], i_agents), :]
             buy_ratios[i] = sum(temp_orders[:, 5]) / size(temp_orders)[1]
             market_ratios[i] = 1.0 - sum(temp_orders[:, 7]) / size(temp_orders)[1]
             mean_size[i] = mean(temp_orders[:, 4])
@@ -70,11 +106,11 @@ function main()
             mean_times[i] = mean(temp_times)
             std_times[i] = std(temp_times)
 
-            temp_cancels = cancellations[cancellations[:, 2].==float(i), :]
+            temp_cancels = cancellations[agents_selection(cancellations[:, 2], i_agents), :]
             cancel_ratios[i] = size(temp_cancels)[1] / size(temp_orders)[1]
 
-            temp_trades_a = trades[trades[:, 6].==float(i), :]
-            temp_trades_p = trades[trades[:, 7].==float(i), :]
+            temp_trades_a = trades[agents_selection(trades[:, 6], i_agents), :]
+            temp_trades_p = trades[agents_selection(trades[:, 7], i_agents), :]
             trades_num[i] = size(temp_trades_a)[1] + size(temp_trades_p)[1]
             traded_volume[i] = sum(temp_trades_a[:, 3]) + sum(temp_trades_p[:, 3])
             
@@ -134,7 +170,7 @@ function main()
             long_profits,
             weight_profits
             )
-        writedlm(string("../plots/results/features_", setting, "_", simulation_type, ".csv"), features, ";")
+        writedlm(string("../plots/results/features_", setting, "_", simulation_type, "_", name, ".csv"), features, ";")
     end
 end
 
