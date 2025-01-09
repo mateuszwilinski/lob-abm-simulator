@@ -28,6 +28,18 @@ MarketOrder(
     symbol::String
     ) = MarketOrder(Ref(size), is_bid, id, agent, symbol)
 
+# Constructor with tick_size (price rounding)
+LimitOrder(
+    price::Float64,
+    size::Int64,
+    is_bid::Bool,
+    id::Int64,
+    agent::Int64,
+    symbol::String;
+    tick_size::Float64
+) = LimitOrder(round_to_tick(price, tick_size), Ref(size), is_bid, id, agent, symbol)
+
+# Constructor without tick_size (no price rounding)
 LimitOrder(
     price::Float64,
     size::Int64,
@@ -35,7 +47,7 @@ LimitOrder(
     id::Int64,
     agent::Int64,
     symbol::String
-    ) = LimitOrder(round_to_tick(price, tick_size), Ref(size), is_bid, id, agent, symbol)
+) = LimitOrder(price, Ref(size), is_bid, id, agent, symbol)
 
 struct Trade
     price::Float64
