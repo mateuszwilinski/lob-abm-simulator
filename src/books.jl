@@ -9,4 +9,5 @@ mutable struct Book
     time::Int64
     symbol::String
     trades::Vector{Trade}
+    ticker_size::Float64
 end

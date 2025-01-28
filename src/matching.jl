@@ -159,3 +159,13 @@ function add_trades!(book::Book,
                                  active_agent, matched_agent))
     end
 end
+
+"""
+    round_to_tick(price, tick_size; truncate::Bool=false)
+
+Rounds a given `price` to the nearest multiple of `tick_size`. 
+This function also rounds to 15 significant digits to mitigate floating-point precision issues.
+"""
+function round_to_tick(price::Float64, tick_size::Float64)::Float64
+    return round(round(price / tick_size) * tick_size, sigdigits=15)
+end
