@@ -1,4 +1,3 @@
-
 using DelimitedFiles
 using Statistics
 
@@ -25,6 +24,9 @@ include("initiate.jl")
 Build and run simulation with market makers and noise agents.
 """
 function main()
+    # Ensure necessary folders exist in the current directory
+    mkpath("plots/results")
+
     # Command line parameters
     end_time = try parse(Int64, ARGS[1]) catch e 360000 end  # simulation length
     setting = try parse(Int64, ARGS[2]) catch e 1 end  # simulation setting
@@ -85,7 +87,8 @@ function main()
         NaN,
         params["initial_time"],
         "ABC",
-        Vector{Trade}()
+        Vector{Trade}(),
+        0.01
     )
     
     book.bids = bids
@@ -105,8 +108,9 @@ function main()
     for k in keys(simulation_outcome["mid_price"])
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
-    writedlm(string("../plots/results/mid_price_", setting, "_1.csv"), mid_price, ";")
-    writedlm(string("../plots/results/trades_", setting, "_1.csv"), simulation_outcome["trades"], ";")
+    
+    writedlm(string("plots/results/mid_price_", setting, "_1.csv"), mid_price, ";")
+    writedlm(string("plots/results/trades_", setting, "_1.csv"), simulation_outcome["trades"], ";")
     if params["snapshots"]
         snapshots = zeros(0, 3)
         for (t, v) in simulation_outcome["snapshots"]
@@ -114,21 +118,21 @@ function main()
                 snapshots = vcat(snapshots, [t v[i, 1] v[i, 2]])
             end
         end
-        writedlm(string("../plots/results/snapshots_", setting, "_1.csv"), snapshots, ";")
+        writedlm(string("plots/results/snapshots_", setting, "_1.csv"), snapshots, ";")
     end
     if params["save_cancelattions"]
         cancellations = zeros(Int64, 0, 3)
         for v in simulation_outcome["cancellations"]
             cancellations = vcat(cancellations, [v[1] v[2] v[3]])
         end
-        writedlm(string("../plots/results/cancellations_", setting, "_1.csv"), cancellations, ";")
+        writedlm(string("plots/results/cancellations_", setting, "_1.csv"), cancellations, ";")
     end
     if params["save_orders"]
         all_orders = zeros(Union{Int64, Float64}, 0, 7)
         for v in simulation_outcome["orders"]
             all_orders = vcat(all_orders, [v[1] v[2] v[3] v[4] v[5] v[6] v[7]])
         end
-        writedlm(string("../plots/results/orders_", setting, "_1.csv"), all_orders, ";")
+        writedlm(string("plots/results/orders_", setting, "_1.csv"), all_orders, ";")
     end
     if params["save_features"]
         buy_ratios = zeros(n_agents)
@@ -173,7 +177,7 @@ function main()
             trades_num,
             traded_volume
             )
-        writedlm(string("../plots/results/features_", setting, "_1.csv"), features, ";")
+        writedlm(string("plots/results/features_", setting, "_1.csv"), features, ";")
     end
 end
 
