@@ -161,6 +161,26 @@ function add_trades!(book::Book,
 end
 
 """
+    create_valid_limit_order(book, price, size, is_bid, id, agent)
+
+Creates a valid `LimitOrder` for the given book, rounding the price 
+to the nearest tick size.
+"""
+function create_valid_limit_order(book::Book, price::Float64, size::Int64, is_bid::Bool, id::Int64, agent::Int64)::LimitOrder
+    return LimitOrder(round_to_tick(price, book.ticker_size), size, is_bid, id, agent, book.symbol)
+end
+
+"""
+    create_valid_market_order(book, size, is_bid, id, agent)
+
+Creates a valid `MarketOrder` for the given book.
+"""
+function create_valid_market_order(book::Book, size::Int64, is_bid::Bool, id::Int64, agent::Int64)::MarketOrder
+    return MarketOrder(size, is_bid, id, agent, book.symbol)
+end
+
+
+"""
     round_to_tick(price, tick_size; truncate::Bool=false)
 
 Rounds a given `price` to the nearest multiple of `tick_size`. 

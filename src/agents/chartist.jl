@@ -57,7 +57,8 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         is_bid = (ret > 0.0)  # TODO: what to do when ret = 0.0 ???
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-        order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
+
+        order = create_valid_limit_order(book, expected_price, order_size, is_bid, simulation["last_id"], agent.id)
 
         # cancel inconsistent orders
         for (order_id, o) in agent.orders
@@ -112,7 +113,8 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
             is_bid = (ret > 0.0)
             simulation["last_id"] += 1
             order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-            order = MarketOrder(order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
+
+            order = create_valid_market_order(book, order_size, is_bid, simulation["last_id"], agent.id)
 
             # cancel inconsistent orders
             for (order_id, o) in agent.orders

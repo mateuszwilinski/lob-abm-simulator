@@ -66,7 +66,7 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
         push!(msgs, response)
     elseif msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
-        order = MarketOrder(msg["chunk"], msg["is_bid"], simulation["last_id"], agent.id, book.symbol)
+        order = create_valid_market_order(book, msg["chunk"], msg["is_bid"], simulation["last_id"], agent.id)
         if params["save_orders"]
             save_order!(simulation, order, agent)
         end

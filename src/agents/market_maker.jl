@@ -52,7 +52,7 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
         for k in 0:agent.K
             # ask ladder step
             simulation["last_id"] += 1
-            order = LimitOrder(ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id, book.symbol)
+            order = create_valid_limit_order(book, ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id)
             if params["save_orders"]
                 save_order!(simulation, order, agent)
             end
@@ -64,7 +64,7 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
             append!(msgs, messages_from_match(matched_orders, book))
             # bid ladder step
             simulation["last_id"] += 1
-            order = LimitOrder(bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id, book.symbol)
+            order = create_valid_limit_order(book, bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id)
             if params["save_orders"]
                 save_order!(simulation, order, agent)
             end

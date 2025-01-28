@@ -37,9 +37,10 @@ end
 
 Create new market order with "order_id" for "agent" and "symbol".
 """
-function create_mkt_order(agent::NoiseTrader, symbol::String, order_id::Int64)
+function create_mkt_order(agent::NoiseTrader, book::Book, order_id::Int64)
     order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-    return MarketOrder(order_size, rand(Bool), order_id, agent.id, symbol)
+    order = create_valid_market_order(book, order_size, rand(Bool), order_id, agent.id)
+    return order
 end
 
 """
@@ -47,10 +48,11 @@ end
 
 Create new limit order with "order_id" and "price" for "agent" and "symbol".
 """
-function create_lmt_order(agent::NoiseTrader, symbol::String,
+function create_lmt_order(agent::NoiseTrader, book::Book,
                           order_id::Int64, price::Float64)
     order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-    return LimitOrder(price, order_size, rand(Bool), order_id, agent.id, symbol)
+    order = create_valid_limit_order(book, price, order_size, rand(Bool), order_id, agent.id)
+    return order
 end
 
 """
@@ -66,7 +68,7 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
     # agent trades
     if msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
-        order = create_mkt_order(agent, book.symbol, simulation["last_id"])
+        order = create_mkt_order(agent, book, simulation["last_id"])
         if params["save_orders"]
             save_order!(simulation, order, agent)
         end
@@ -87,7 +89,7 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         end
         price += randn() * agent.sigma
         simulation["last_id"] += 1
-        order = create_lmt_order(agent, book.symbol, simulation["last_id"], price)
+        order = create_lmt_order(agent, book, simulation["last_id"], price)
         if params["save_orders"]
             save_order!(simulation, order, agent)
         end
