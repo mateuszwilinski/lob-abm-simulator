@@ -42,9 +42,9 @@ function main()
     n_agents = try parse(Int64, ARGS[1]) catch e 1590 end  # number of base agents
     ext_agents = try parse(Int64, ARGS[2]) catch e 530 end  # number of agents to be extended
     ext_noise = try parse(Int64, ARGS[3]) catch e 0 end  # number of noise agents per extended agent
-    simulation_type = try parse(Int64, ARGS[4]) catch e 2 end  # experiment number
+    simulation_type = try parse(Int64, ARGS[4]) catch e 2 end  # simulation type
     K = try parse(Int64, ARGS[5]) catch e 5 end  # last setting to be used
-    name = try parse(Int64, ARGS[6]) catch e 5 end  # 
+    name = try parse(Int64, ARGS[6]) catch e 5 end  # name to be added to the output file
 
     # Parameters
     horizon_short = 10000
