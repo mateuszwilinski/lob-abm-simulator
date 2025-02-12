@@ -27,7 +27,13 @@ Ensure you have [Julia](https://julialang.org) installed. Clone the repository:
 git clone https://github.com/your_username/lob-abm-simulator.git
 ```
 
-Install the required Julia packages as specified in your project file (typically `Project.toml`).
+Install the required Julia packages:
+- DataStructures
+- Distributions
+- Test
+- DelimitedFiles
+- Statistics
+- Random
 
 ## Usage
 
@@ -63,4 +69,3 @@ If you find this repository useful, please cite the following article.
 ## License
 
 This project is licensed under the terms specified in the LICENSE file.
-```
