@@ -35,6 +35,13 @@ Install the required Julia packages:
 - Statistics
 - Random
 
+You can do the latter by entering Julia REPL and calling `Pkg.add`:
+
+```julia
+julia> using Pkg
+julia> Pkg.add(["DataStructures", "Distributions", "Test", "DelimitedFiles", "Statistics", "Random"])
+```
+
 ## Usage
 
 ### Running Simulations
