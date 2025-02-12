@@ -11,11 +11,11 @@ The simulator implements:
 
 ## Repository Structure
 
-- **src/:** Source code containing simulation logic, including agent definitions ([agents/agents.jl](src/agents/agents.jl)) and order book management ([src/books.jl](src/books.jl)).
+- **src/:** Source code containing simulation logic, including agent definitions ([src/agents.jl](src/agents.jl)) and order book management ([src/books.jl](src/books.jl)).
 - **scripts/:** Utility Julia scripts (e.g., [compute_features.jl](scripts/compute_features.jl)).
 - **test/:** Unit tests for verifying simulator functionality.
-- **examples/:** Example simulation scripts written in Julia (e.g., [market_makers.jl](examples/market_makers.jl), [market_takers.jl](examples/market_takers.jl), [noise_traders.jl](examples/noise_traders.jl)).
-- **experiments/:** Experimental scripts to initiate and run various simulations (e.g., [initiate.jl](experiments/initiate.jl), [run_abm.jl](experiments/run_abm.jl)).
+- **examples/:** Example simulation scripts (e.g., [market_makers.jl](examples/market_makers.jl), [market_takers.jl](examples/market_takers.jl), [noise_traders.jl](examples/noise_traders.jl)).
+- **experiments/:** Experimental scripts to initiate and run various simulations (e.g., [run_abm.jl](experiments/run_abm.jl)).
 - **.gitignore:** Files and directories to ignore in version control.
 - **LICENSE:** License information.
 
