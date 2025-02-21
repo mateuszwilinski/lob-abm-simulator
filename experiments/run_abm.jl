@@ -1,5 +1,6 @@
 using DelimitedFiles
 using Statistics
+using Graphs
 
 import Random
 
@@ -19,7 +20,6 @@ include("initiate.jl")
 Build and run simulation with market makers and noise agents.
 """
 
-using Graphs
 
 function connect_agents!(agents::Dict{Int64, Agent}, network_type::String; p=0.1, k=3, m=2)
     n = length(agents)
