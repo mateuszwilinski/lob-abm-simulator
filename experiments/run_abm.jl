@@ -1,4 +1,3 @@
-
 using DelimitedFiles
 using Statistics
 
@@ -19,7 +18,52 @@ include("initiate.jl")
 
 Build and run simulation with market makers and noise agents.
 """
+
+using Graphs
+
+function connect_agents!(agents::Dict{Int64, Agent}, network_type::String; p=0.1, k=3, m=2)
+    n = length(agents)
+    graph = nothing
+
+    if network_type == "erdos_renyi"
+        println("Creating Erdős–Rényi network with p = $p")
+        graph = erdos_renyi(n, p)  # Random connections with probability p
+    elseif network_type == "barabasi_albert"
+        println("Creating Barabási–Albert network with m = $m")
+        graph = barabasi_albert(n, m)  # Preferential attachment
+    elseif network_type == "regular"
+        println("Creating Regular network with k = $k")
+        graph = simple_graph(n)
+        for i in 1:n
+            for j in 1:k
+                neighbor = (i + j - 1) % n + 1
+                add_edge!(graph, i, neighbor)
+            end
+        end
+    else
+        error("Unknown network type: $network_type")
+    end
+
+    # Assign connected traders based on the graph
+    for i in 1:n
+        neighbors = neighbors(graph, i)
+        if haskey(agents, i)
+            agents[i] = Trader(agents[i].id, agents[i].orders, collect(neighbors))
+        end
+    end
+
+    println("Connected agents using $network_type network.")
+end
+
+
 function main()
+    # Ensure the results folder exists
+    results_dir = "../plots/results/"
+    if !isdir(results_dir)
+        println("Directory $results_dir does not exist. Creating it...")
+        mkpath(results_dir)
+    end
+
     # Command line parameters
     end_time = try parse(Int64, ARGS[1]) catch e 360000 end  # simulation length
     setting = try parse(Int64, ARGS[2]) catch e 1 end  # simulation setting
@@ -50,17 +94,17 @@ function main()
     params["save_orders"] = true
     params["save_cancelattions"] = true
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
-    # sgn = -1
-    # for i in 20000:20000:params["end_time"]
-    #     sgn *= -1
-    #     params["fundamental_dynamics"][i:(i-19999)] .+= (sgn + 1) * 25.0 + params["fundamental_price"]
-    # end
     params["fundamental_dynamics"][Int(end_time / 4):end] .= 0.7 * params["fundamental_price"]
     params["fundamental_dynamics"][Int(end_time / 2):end] .= 1.0 * params["fundamental_price"]
     params["fundamental_dynamics"][Int(3 * end_time / 4):end] .= 0.7 * params["fundamental_price"]
 
     # Agents
     agents, n_agents = initiate_agents(mm1, mm2, mm3, mt1, mt2, mt3, fund1, fund2, fund3, fund4, chart1, chart2, chart3, chart4, nois1)
+
+    # Connect agents using a specific network type
+    connect_agents!(agents, "erdos_renyi", p=0.1)     # Erdős–Rényi
+    # connect_agents!(agents, "barabasi_albert", m=2)  # Barabási–Albert
+    # connect_agents!(agents, "regular", k=3)          # Regular graph
 
     # Build starting orders
     asks = Dict{Float64, OrderedSet}()
@@ -109,8 +153,8 @@ function main()
     for k in keys(simulation_outcome["mid_price"])
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
-    writedlm(string("../plots/results/mid_price_", setting, "_", experiment, ".csv"), mid_price, ";")
-    writedlm(string("../plots/results/trades_", setting, "_", experiment, ".csv"), simulation_outcome["trades"], ";")
+    writedlm(string(results_dir, "mid_price_", setting, "_", experiment, ".csv"), mid_price, ";")
+    writedlm(string(results_dir, "trades_", setting, "_", experiment, ".csv"), simulation_outcome["trades"], ";")
     if params["snapshots"]
         snapshots = zeros(0, 3)
         for (t, v) in simulation_outcome["snapshots"]
@@ -118,21 +162,21 @@ function main()
                 snapshots = vcat(snapshots, [t v[i, 1] v[i, 2]])
             end
         end
-        writedlm(string("../plots/results/snapshots_", setting, "_", experiment, ".csv"), snapshots, ";")
+        writedlm(string(results_dir, "snapshots_", setting, "_", experiment, ".csv"), snapshots, ";")
     end
     if params["save_cancelattions"]
         cancellations = zeros(Int64, 0, 3)
         for v in simulation_outcome["cancellations"]
             cancellations = vcat(cancellations, [v[1] v[2] v[3]])
         end
-        writedlm(string("../plots/results/cancellations_", setting, "_", experiment, ".csv"), cancellations, ";")
+        writedlm(string(results_dir, "cancellations_", setting, "_", experiment, ".csv"), cancellations, ";")
     end
     if params["save_orders"]
         all_orders = zeros(Union{Int64, Float64}, 0, 7)
         for v in simulation_outcome["orders"]
             all_orders = vcat(all_orders, [v[1] v[2] v[3] v[4] v[5] v[6] v[7]])
         end
-        writedlm(string("../plots/results/orders_", setting, "_", experiment, ".csv"), all_orders, ";")
+        writedlm(string(results_dir, "orders_", setting, "_", experiment, ".csv"), all_orders, ";")
     end
 end
 

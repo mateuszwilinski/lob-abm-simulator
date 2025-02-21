@@ -6,6 +6,8 @@ abstract type Agent end
 struct Trader <: Agent
     id::Int64
     orders::Dict{Int64, LimitOrder}
+    connected_traders::Union{Vector{Int64}, Nothing} 
+ 
 end
 
 struct NoiseTrader <: Agent
