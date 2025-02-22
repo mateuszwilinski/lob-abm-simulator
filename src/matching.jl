@@ -181,11 +181,12 @@ end
 
 
 """
-    round_to_tick(price, tick_size; truncate::Bool=false)
+    round_to_tick(price, tick_size)
 
 Rounds a given `price` to the nearest multiple of `tick_size`. 
 This function also rounds to 15 significant digits to mitigate floating-point precision issues.
+If tick_size is `nothing`, the function returns the original price.
 """
-function round_to_tick(price::Float64, tick_size::Float64)::Float64
-    return round(round(price / tick_size) * tick_size, sigdigits=15)
+function round_to_tick(price::Float64, tick_size::Union{Float64, Nothing})::Float64
+    return tick_size === nothing ? price : round(round(price / tick_size) * tick_size, sigdigits=15)
 end
