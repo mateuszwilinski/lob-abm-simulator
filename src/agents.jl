@@ -6,8 +6,6 @@ abstract type Agent end
 struct Trader <: Agent
     id::Int64
     orders::Dict{Int64, LimitOrder}
-    connected_traders::Union{Vector{Int64}, Nothing} 
- 
 end
 
 struct NoiseTrader <: Agent
@@ -32,6 +30,10 @@ NoiseTrader(
     size::Int64,
     size_sigma::Float64
     ) = NoiseTrader(id, Dict{Int64, LimitOrder}(), limit_rate, market_rate, cancel_rate, sigma, size, size_sigma)
+
+struct NetTrader <: Agent
+    id::Int64
+end
 
 struct MarketMaker <: Agent  # TODO: Maybe we could add knowledge about fundamental price?
     id::Int64

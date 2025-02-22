@@ -20,42 +20,6 @@ include("initiate.jl")
 Build and run simulation with market makers and noise agents.
 """
 
-
-function connect_agents!(agents::Dict{Int64, Agent}, network_type::String; p=0.1, k=3, m=2)
-    n = length(agents)
-    graph = nothing
-
-    if network_type == "erdos_renyi"
-        println("Creating Erdős–Rényi network with p = $p")
-        graph = erdos_renyi(n, p)  # Random connections with probability p
-    elseif network_type == "barabasi_albert"
-        println("Creating Barabási–Albert network with m = $m")
-        graph = barabasi_albert(n, m)  # Preferential attachment
-    elseif network_type == "regular"
-        println("Creating Regular network with k = $k")
-        graph = simple_graph(n)
-        for i in 1:n
-            for j in 1:k
-                neighbor = (i + j - 1) % n + 1
-                add_edge!(graph, i, neighbor)
-            end
-        end
-    else
-        error("Unknown network type: $network_type")
-    end
-
-    # Assign connected traders based on the graph
-    for i in 1:n
-        neighbors = neighbors(graph, i)
-        if haskey(agents, i)
-            agents[i] = Trader(agents[i].id, agents[i].orders, collect(neighbors))
-        end
-    end
-
-    println("Connected agents using $network_type network.")
-end
-
-
 function main()
     # Ensure the results folder exists
     results_dir = "../plots/results/"

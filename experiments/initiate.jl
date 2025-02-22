@@ -1,4 +1,3 @@
-
 function initiate_agents(mm1, mm2, mm3,
                          mt1, mt2, mt3,
                          fund1, fund2, fund3, fund4,
