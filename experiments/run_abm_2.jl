@@ -62,6 +62,7 @@ function main()
     params["fundamental_dynamics"][Int(end_time / 4):end] .= 0.7 * params["fundamental_price"]
     params["fundamental_dynamics"][Int(end_time / 2):end] .= 1.0 * params["fundamental_price"]
     params["fundamental_dynamics"][Int(3 * end_time / 4):end] .= 0.7 * params["fundamental_price"]
+    params["tick_size"] = nothing
 
     # Agents
     agents, n_agents = initiate_agents(mm1, mm2, mm3, mt1, mt2, mt3, fund1, fund2, fund3, fund4, chart1, chart2, chart3, chart4, nois1)
@@ -93,7 +94,8 @@ function main()
         NaN,
         params["initial_time"],
         "ABC",
-        Vector{Trade}()
+        Vector{Trade}(),
+        params["tick_size"]
     )
     
     book.bids = bids

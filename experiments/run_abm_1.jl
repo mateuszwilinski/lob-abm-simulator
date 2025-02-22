@@ -56,6 +56,7 @@ function main()
     params["save_orders"] = true
     params["save_cancelattions"] = true
     params["save_features"] = true
+    params["tick_size"] = nothing
 
     # Agents
     agents, n_agents = initiate_agents(mm1, mm2, mm3, mt1, mt2, mt3, fund1, fund2, fund3, fund4, chart1, chart2, chart3, chart4, nois1)
@@ -88,7 +89,7 @@ function main()
         params["initial_time"],
         "ABC",
         Vector{Trade}(),
-        0.01
+        params["tick_size"]
     )
     
     book.bids = bids
