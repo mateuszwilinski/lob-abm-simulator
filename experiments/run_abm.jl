@@ -8,11 +8,6 @@ include("../src/orders.jl")
 include("../src/books.jl")
 include("../src/agents.jl")
 include("../src/saving_data.jl")
-include("../src/agents/noise_trader.jl")
-include("../src/agents/market_maker.jl")
-include("../src/agents/market_taker.jl")
-include("../src/agents/chartist.jl")
-include("../src/agents/fundamentalist.jl")
 include("../src/trading.jl")
 include("../src/matching.jl")
 include("../src/market_state.jl")
@@ -44,6 +39,7 @@ function main()
     chart4 = try parse(Int64, ARGS[16]) catch e 10 end  # number of ...
     nois1 = try parse(Int64, ARGS[17]) catch e 10 end  # number of ...
     seed = try parse(Int64, ARGS[18]) catch e 1 end  # number of ...
+    experiment = try parse(Int64, ARGS[19]) catch e 1 end  # number of ...
 
     # Simulation parameters
     params = Dict()
@@ -115,8 +111,8 @@ function main()
     for k in keys(simulation_outcome["mid_price"])
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
-    writedlm(string("../plots/results/mid_price_", setting, "_2.csv"), mid_price, ";")
-    writedlm(string("../plots/results/trades_", setting, "_2.csv"), simulation_outcome["trades"], ";")
+    writedlm(string("../plots/results/mid_price_", setting, "_", experiment, ".csv"), mid_price, ";")
+    writedlm(string("../plots/results/trades_", setting, "_", experiment, ".csv"), simulation_outcome["trades"], ";")
     if params["snapshots"]
         snapshots = zeros(0, 3)
         for (t, v) in simulation_outcome["snapshots"]
@@ -124,21 +120,21 @@ function main()
                 snapshots = vcat(snapshots, [t v[i, 1] v[i, 2]])
             end
         end
-        writedlm(string("../plots/results/snapshots_", setting, "_2.csv"), snapshots, ";")
+        writedlm(string("../plots/results/snapshots_", setting, "_", experiment, ".csv"), snapshots, ";")
     end
     if params["save_cancelattions"]
         cancellations = zeros(Int64, 0, 3)
         for v in simulation_outcome["cancellations"]
             cancellations = vcat(cancellations, [v[1] v[2] v[3]])
         end
-        writedlm(string("../plots/results/cancellations_", setting, "_2.csv"), cancellations, ";")
+        writedlm(string("../plots/results/cancellations_", setting, "_", experiment, ".csv"), cancellations, ";")
     end
     if params["save_orders"]
         all_orders = zeros(Union{Int64, Float64}, 0, 7)
         for v in simulation_outcome["orders"]
             all_orders = vcat(all_orders, [v[1] v[2] v[3] v[4] v[5] v[6] v[7]])
         end
-        writedlm(string("../plots/results/orders_", setting, "_2.csv"), all_orders, ";")
+        writedlm(string("../plots/results/orders_", setting, "_", experiment, ".csv"), all_orders, ";")
     end
 end
 
