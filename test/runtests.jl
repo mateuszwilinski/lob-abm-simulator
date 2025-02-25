@@ -5,8 +5,8 @@ include("../src/orders.jl")
 include("../src/books.jl")
 include("../src/agents.jl")
 include("../src/agents/market_taker.jl")
-include("../src/matching.jl")
-include("../src/trading.jl")
+include("../src/handling_order.jl")
+include("../src/changing_order.jl")
 
 # Data and setting
 
@@ -18,7 +18,8 @@ book = Book(
     NaN,
     0,
     "ABC",
-    Vector{Trade}()
+    Vector{Trade}(),
+    0.0
     )
 
 agents = Dict{Int64, Agent}()
