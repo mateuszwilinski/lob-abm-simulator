@@ -47,8 +47,8 @@ function main()
     params["initial_time"] = 1  # TODO: Initial time cannot be zero or negative.
     params["fundamental_price"] = 100.0
     params["snapshots"] = false
-    params["save_orders"] = true
-    params["save_cancelattions"] = true
+    params["save_orders"] = false
+    params["save_cancelattions"] = false
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
     # sgn = -1
     # for i in 20000:20000:params["end_time"]
@@ -134,6 +134,7 @@ function main()
         end
         writedlm(string("../plots/results/orders_", setting, "_", experiment, ".csv"), all_orders, ";")
     end
+    println(mid_price[1000:100:2000])
 end
 
 main()
