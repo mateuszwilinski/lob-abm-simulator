@@ -2,33 +2,6 @@
 import DataStructures: PriorityQueue, dequeue!, enqueue!
 
 """
-    messages_from_match(matched_orders, book, params)
-
-Create messages about "matched_orders" for both affected agents and reporting agents.
-"""
-function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64,
-                                                          Int64, Int64,
-                                                          Int64, Float64,
-                                                          Int64}},
-                             book::Book)
-    msgs = Vector{Dict}()
-    for (matched_agent, matched_order, active_agent, active_order,
-         trade_size, price, order_size) in matched_orders
-        # send message to affected agent
-        msg = Dict{String, Union{String, Int64, Float64, Bool}}()
-        msg["recipient"] = matched_agent
-        msg["book"] = book.symbol
-        msg["activation_time"] = book.time
-        msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
-        msg["action"] = "UPDATE_ORDER"
-        msg["order_id"] = matched_order
-        msg["order_size"] = order_size
-        push!(msgs, msg)
-    end
-    return msgs
-end
-
-"""
     add_new_msgs(messages, new_msgs)
 
 Add "new_msgs" to the messages queue with priority equal
