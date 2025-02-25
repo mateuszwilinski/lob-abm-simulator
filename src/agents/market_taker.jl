@@ -39,12 +39,12 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
         order_time = 0
         chunk_sum = 0
         while chunk_sum < agent.size
+            order_time += round(Int64, max(1, randn()*agent.time_sigma + agent.exit_time))
+            chunk_activation_time = msg["activation_time"] + order_time
+
             chunk_size = round(Int64, max(1, randn()*agent.chunk_sigma + agent.chunk))
             chunk_size = min(agent.size - chunk_sum, chunk_size)
             chunk_sum += chunk_size
-
-            order_time += round(Int64, max(1, randn()*agent.time_sigma + agent.exit_time))
-            chunk_activation_time = msg["activation_time"] + order_time
 
             chunk_msg = create_next_chunk_msgs(agent.id, book.symbol, is_bid, chunk_activation_time, chunk_size)
             push!(msgs, chunk_msg)
