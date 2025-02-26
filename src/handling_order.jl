@@ -1,12 +1,12 @@
 
 """
-    pass_order!(book, order, agent, simulation, save)
+    pass_order!(book, order, agent, simulation, parameters)
 
 Passes an "order" (limit order) to the "book" and save it if necessary.
 Returns messages to be sent to affected agents.
 """
-function pass_order!(book::Book, order::LimitOrder, agent::Agent, simulation::Dict, save::Bool)
-    if save
+function pass_order!(book::Book, order::LimitOrder, agent::Agent, simulation::Dict, parameters::Dict)
+    if parameters["save_events"]
         save_order!(simulation, order, agent)
     end
     matched_orders = add_order!(book, order)
@@ -19,13 +19,13 @@ function pass_order!(book::Book, order::LimitOrder, agent::Agent, simulation::Di
 end
 
 """
-    pass_order!(book, order, agent, simulation, save)
+    pass_order!(book, order, agent, simulation, parameters)
 
 Passes an "order" (market order) to the "book" and save it if necessary.
 Returns messages to be sent to affected agents.
 """
-function pass_order!(book::Book, order::MarketOrder, agent::Agent, simulation::Dict, save::Bool)
-    if save
+function pass_order!(book::Book, order::MarketOrder, agent::Agent, simulation::Dict, parameters::Dict)
+    if parameters["save_events"]
         save_order!(simulation, order, agent)
     end
     matched_orders = add_order!(book, order)

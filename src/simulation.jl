@@ -30,19 +30,6 @@ function update_mid_price!(simulation::Dict, previous_time::Int64, new_time::Int
 end
 
 """
-    update_fundamental_price!(params, current_time)
-
-Update the fundamental price state in the parameters dictionary.
-"""
-function update_fundamental_price!(params::Dict, current_time::Int64)
-    if haskey(params, "fundamental_dynamics")
-        if current_time <= params["end_time"]
-           params["fundamental_price"] = params["fundamental_dynamics"][current_time]
-        end
-    end
-end
-
-"""
     run_simulation(agents, book, messages, params)
 
 Run simulation with "params" over the "book" with given "agents"
@@ -79,7 +66,6 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         # check time and update simulation state if needed
         if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results for end_time and initial_time
             update_mid_price!(simulation, previous_time, msg["activation_time"], book)
-            update_fundamental_price!(params, msg["activation_time"])
             if params["snapshots"]
                 simulation["snapshots"][simulation["current_time"]] = market_depth(book)
             end

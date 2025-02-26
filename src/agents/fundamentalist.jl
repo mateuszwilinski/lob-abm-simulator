@@ -45,10 +45,11 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     if msg["action"] == "LIMIT_ORDER"
         # build limit order
         current_mid_price = mid_price(book)
+        fundamental_price = params["fundamental_dynamics"][simulation["current_time"]]
         if isnan(current_mid_price)
-            current_mid_price = params["fundamental_price"]
+            current_mid_price = fundamental_price
         end
-        ret = agent.coeff * (params["fundamental_price"] - current_mid_price) + randn() * agent.sigma
+        ret = agent.coeff * (fundamental_price - current_mid_price) + randn() * agent.sigma
         expected_price = current_mid_price + ret
 
         is_bid = (ret > 0.0)
@@ -59,13 +60,13 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
                            tick_size=book.tick_size)
 
         # cancel inconsistent orders
-        cancel_inconsistent_orders!(agent, book, is_bid, params["save_events"], simulation, expected_price)
+        cancel_inconsistent_orders!(agent, book, is_bid, params, simulation, expected_price)
 
-        # match new limit order
-        matching_msgs = pass_order!(book, order, agent, simulation, params["save_events"])
+        # pass new limit order
+        matching_msgs = pass_order!(book, order, agent, simulation, params)
         append!(msgs, matching_msgs)
 
-        # sending expiration message
+        # send expiration message
         expire = Dict{String, Union{String, Int64, Float64, Bool}}()
         expire["recipient"] = agent.id
         expire["book"] = book.symbol
@@ -83,7 +84,8 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "MARKET_ORDER"
         # sending market order
         current_mid_price = mid_price(book)
-        ret = agent.coeff * (params["fundamental_price"] - current_mid_price) + randn() * agent.sigma
+        fundamental_price = params["fundamental_dynamics"][simulation["current_time"]]
+        ret = agent.coeff * (fundamental_price - current_mid_price) + randn() * agent.sigma
 
         if (book.best_ask - book.best_bid - 2.0 * abs(ret)) < 0.0
             # prepare market order
@@ -94,10 +96,10 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
             order = MarketOrder(order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
 
             # cancel inconsistent orders
-            cancel_inconsistent_orders!(agent, book, is_bid, params["save_events"], simulation)
+            cancel_inconsistent_orders!(agent, book, is_bid, params, simulation)
 
             # match new market order
-            matching_msgs = pass_order!(book, order, agent, simulation, params["save_events"])
+            matching_msgs = pass_order!(book, order, agent, simulation, params)
             append!(msgs, matching_msgs)
         end  # TODO: should we cancel inconsistent limit orders in this case?
 
@@ -109,7 +111,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         order_id = msg["order_id"]
         if order_id in keys(agent.orders)
-            cancel_order!(order_id, book, agent, simulation, params["save_events"])
+            cancel_order!(order_id, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
         if msg["order_size"] == 0

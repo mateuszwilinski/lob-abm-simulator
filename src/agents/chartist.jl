@@ -46,11 +46,12 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         # prepare limit order
         current_mid_price = mid_price(book)
         previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
+        fundamental_price = params["fundamental_dynamics"][simulation["current_time"]]
 
         expected_price = predict_price(
             current_mid_price,
             previous_mid_price,
-            params["fundamental_price"],
+            fundamental_price,
             agent.coeff,
             agent.sigma
             )
@@ -63,15 +64,21 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
                            tick_size=book.tick_size)
 
         # cancel inconsistent orders
-        cancel_inconsistent_orders!(agent, book, is_bid, params["save_events"], simulation, expected_price)
+        cancel_inconsistent_orders!(agent, book, is_bid, params, simulation, expected_price)
 
         # pass new limit order to the book
-        matching_msgs = pass_order!(book, order, agent, simulation, params["save_events"])
+        matching_msgs = pass_order!(book, order, agent, simulation, params)
         append!(msgs, matching_msgs)
 
-        # sending expiration message
-        expiration_time = simulation["current_time"] + agent.horizon
-        push!(msgs, expire_msg(agent.id, order.id, expiration_time, book.symbol))
+        # send expiration message
+        expire = Dict{String, Union{String, Int64, Float64, Bool}}()
+        expire["recipient"] = agent.id
+        expire["book"] = book.symbol
+        expire["activation_time"] = simulation["current_time"] + agent.horizon
+        expire["activation_priority"] = 1
+        expire["action"] = "CANCEL_ORDER"
+        expire["order_id"] = order.id
+        push!(msgs, expire)
 
         # prepare next order message
         activation_time_diff = ceil(Int64, rand(Exponential(agent.limit_rate)))
@@ -79,7 +86,7 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         response["activation_time"] += activation_time_diff
         push!(msgs, response)
     elseif msg["action"] == "MARKET_ORDER"
-        # sending market order
+        # send market order
         current_mid_price = mid_price(book)
         previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
         ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
@@ -93,10 +100,10 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
             order = MarketOrder(order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
 
             # cancel inconsistent orders
-            cancel_inconsistent_orders!(agent, book, is_bid, params["save_events"], simulation)
+            cancel_inconsistent_orders!(agent, book, is_bid, params, simulation)
 
             # match new market order
-            matching_msgs = pass_order!(book, order, agent, simulation, params["save_events"])
+            matching_msgs = pass_order!(book, order, agent, simulation, params)
             append!(msgs, matching_msgs)
         end
 
@@ -108,7 +115,7 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         order_id = msg["order_id"]
         if order_id in keys(agent.orders)
-            cancel_order!(order_id, book, agent, simulation, params["save_events"])
+            cancel_order!(order_id, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
         if msg["order_size"] == 0
@@ -128,26 +135,10 @@ Predict future price using the chartist model.
 function predict_price(current_mid_price::F, previous_mid_price::F, fundamental_price::F, coeff::F, sigma::F) where {F <: Real}
     if isnan(current_mid_price) | isnan(previous_mid_price)
         ret = randn() * sigma
-        expected_price = params["fundamental_price"] + ret
+        expected_price = fundamental_price + ret
     else
         ret = coeff * (current_mid_price - previous_mid_price) + randn() * sigma
         expected_price = current_mid_price + ret
     end
     return expected_price
-end
-
-"""
-    expire_msg(agent_id, order_id, time, symbol)
-
-Create a message order expiration.
-"""
-function expire_msg(agent_id::T, order_id::T, time::T, symbol::String) where {T <: Integer}
-    expire = Dict{String, Union{String, Int64, Float64, Bool}}()
-    expire["recipient"] = agent_id
-    expire["book"] = symbol
-    expire["activation_time"] = time
-    expire["activation_priority"] = 1
-    expire["action"] = "CANCEL_ORDER"
-    expire["order_id"] = order_id
-    return expire
 end

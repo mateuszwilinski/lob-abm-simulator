@@ -47,28 +47,28 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
         order = MarketOrder(order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol)
-        matching_msgs = pass_order!(book, order, agent, simulation, params["save_events"])
+        matching_msgs = pass_order!(book, order, agent, simulation, params)
         append!(msgs, matching_msgs)
 
         rate = agent.market_rate
     elseif msg["action"] == "LIMIT_ORDER"
         price = mid_price(book)
         if isnan(price)
-            price = params["fundamental_price"]  # TODO: this may depend on time
+            price = params["fundamental_dynamics"][simulation["current_time"]]
         end
         price += randn() * agent.sigma
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
         order = LimitOrder(price, order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol;
                            tick_size=book.tick_size)
-        matching_msgs = pass_order!(book, order, agent, simulation, params["save_events"])
+        matching_msgs = pass_order!(book, order, agent, simulation, params)
         append!(msgs, matching_msgs)
 
         rate = agent.limit_rate
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
             order_id = rand(keys(agent.orders))
-            cancel_order!(order_id, book, agent, simulation, params["save_events"])
+            cancel_order!(order_id, book, agent, simulation, params)
         end
 
         rate = agent.cancel_rate

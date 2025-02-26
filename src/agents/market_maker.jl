@@ -36,7 +36,7 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
         # cancel previous ladder
         if !isempty(agent.orders)
             for order_id in keys(agent.orders)
-                cancel_order!(order_id, book, agent, simulation, params["save_events"])
+                cancel_order!(order_id, book, agent, simulation, params)
             end
         end
 
@@ -44,26 +44,26 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
         ask = book.best_ask
         bid = book.best_bid
         if isnan(ask) | isnan(bid)
-            ask = params["fundamental_price"] + agent.q
-            bid = params["fundamental_price"] - agent.q
+            ask = params["fundamental_dynamics"][simulation["current_time"]] + agent.q
+            bid = params["fundamental_dynamics"][simulation["current_time"]] - agent.q
         end
         for k in 0:agent.K
             # ask ladder step
             simulation["last_id"] += 1
             order = LimitOrder(ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id, book.symbol;
                                tick_size=book.tick_size)
-            matching_msgs = pass_order!(book, order, agent, simulation, params["save_events"])
+            matching_msgs = pass_order!(book, order, agent, simulation, params)
             append!(msgs, matching_msgs)
 
             # bid ladder step
             simulation["last_id"] += 1
             order = LimitOrder(bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id, book.symbol;
                                tick_size=book.tick_size)
-            matching_msgs = pass_order!(book, order, agent, simulation, params["save_events"])
+            matching_msgs = pass_order!(book, order, agent, simulation, params)
             append!(msgs, matching_msgs)
         end
 
-        # agent sends next ladder message
+        # send next ladder message
         activation_time_diff = ceil(Int64, rand(Exponential(agent.rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff

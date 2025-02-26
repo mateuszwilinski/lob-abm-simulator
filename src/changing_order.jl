@@ -1,18 +1,18 @@
 
 """
-    cancel_order!(order_id, book, agent, simulation, save)
+    cancel_order!(order_id, book, agent, simulation, parameters)
 
 Cancel order and save the cancellation if needed.
 """
-function cancel_order!(order_id::Int64, book::Book, agent::Agent, simulation::Dict, save::Bool)
-    if save
+function cancel_order!(order_id::Int64, book::Book, agent::Agent, simulation::Dict, parameters::Dict)
+    if parameters["save_events"]
         save_cancel!(simulation, order_id, agent)
     end
     remove_order!(order_id, book, agent)
 end
 
 """
-    cancel_inconsistent_orders!(agent, book, is_bid, save, simulation, expected_price)
+    cancel_inconsistent_orders!(agent, book, is_bid, parameters, simulation, expected_price)
 
 Cancel orders inconsistent with both "is_bid" direction and "expected_price".
 """
@@ -20,20 +20,20 @@ function cancel_inconsistent_orders!(
             agent::Agent,
             book::Book,
             is_bid::Bool,
-            save::Bool,
+            parameters::Dict,
             simulation::Dict,
             expected_price::F
             ) where {F <: Real}
 
     for (order_id, o) in agent.orders
         if o.is_bid != is_bid
-            if save
+            if parameters["save_events"]
                 save_cancel!(simulation, order_id, agent)
             end
             remove_order!(order_id, book, agent)
         elseif (((o.price > expected_price) && o.is_bid) ||
                 ((o.price < expected_price) && !o.is_bid))
-            if save
+            if parameters["save_events"]
                 save_cancel!(simulation, order_id, agent)
             end
             remove_order!(order_id, book, agent)
@@ -46,10 +46,10 @@ end
 
 Cancel orders inconsistent with "is_bid" direction.
 """
-function cancel_inconsistent_orders!(agent::Agent, book::Book, is_bid::Bool, save::Bool, simulation::Dict)
+function cancel_inconsistent_orders!(agent::Agent, book::Book, is_bid::Bool, parameters::Dict, simulation::Dict)
     for (order_id, o) in agent.orders
         if o.is_bid != is_bid
-            if save
+            if parameters["save_events"]
                 save_cancel!(simulation, order_id, agent)
             end
             remove_order!(order_id, book, agent)
@@ -117,4 +117,4 @@ function remove_matched_orders!(matched_orders::Vector{Tuple{Int64, Int64, Int64
     for (agent_id, order_id,) in matched_orders[1:(end-1)]
         delete!(agents[agent_id].orders, order_id)
     end
-end  # TODO: This function is potentially useless and most likely outdated(!!!).
+end  # TODO: This function is potentially outdated.
