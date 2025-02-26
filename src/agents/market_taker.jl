@@ -39,24 +39,15 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
         order_time = 0
         chunk_sum = 0
         while chunk_sum < agent.size
-            mrkt_msg = Dict{String, Union{String, Int64, Float64, Bool}}()
-            mrkt_msg["recipient"] = agent.id
-            mrkt_msg["book"] = book.symbol
-            mrkt_msg["activation_priority"] = 1
-            mrkt_msg["action"] = "MARKET_ORDER"
-            mrkt_msg["is_bid"] = is_bid
-
-            # next chunk activation time
             order_time += round(Int64, max(1, randn()*agent.time_sigma + agent.exit_time))
-            mrkt_msg["activation_time"] = msg["activation_time"] + order_time
+            chunk_activation_time = msg["activation_time"] + order_time
 
-            # next chunk size
-            chunk_temp = round(Int64, max(1, randn()*agent.chunk_sigma + agent.chunk))
-            chunk_temp = min(agent.size - chunk_sum, chunk_temp)
-            mrkt_msg["chunk"] = chunk_temp
-            chunk_sum += chunk_temp
+            chunk_size = round(Int64, max(1, randn()*agent.chunk_sigma + agent.chunk))
+            chunk_size = min(agent.size - chunk_sum, chunk_size)
+            chunk_sum += chunk_size
 
-            push!(msgs, mrkt_msg)
+            chunk_msg = create_next_chunk_msgs(agent.id, book.symbol, is_bid, chunk_activation_time, chunk_size)
+            push!(msgs, chunk_msg)
         end
 
         # next big order
@@ -67,14 +58,23 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
         order = MarketOrder(msg["chunk"], msg["is_bid"], simulation["last_id"], agent.id, book.symbol)
-        if params["save_orders"]
-            save_order!(simulation, order, agent)
-        end
-        matched_orders = add_order!(book, order)
-        add_trades!(book, matched_orders)
-        append!(msgs, messages_from_match(matched_orders, book))
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
+        append!(msgs, matching_msgs)
     else
         throw(error("Unknown action for a Market Taker."))  # TODO: Maybe we should add the specific action here?
     end
     return msgs
+end
+
+function create_next_chunk_msgs(agent_id::T, symbol::String, is_bid::Bool, chunk_activation_time::T, chunk_size::T) where {T <: Integer}
+    msg = Dict{String, Union{String, Int64, Float64, Bool}}()
+    msg["recipient"] = agent_id
+    msg["book"] = symbol
+    msg["activation_priority"] = 1
+    msg["action"] = "MARKET_ORDER"
+    msg["is_bid"] = is_bid
+    msg["activation_time"] = chunk_activation_time
+    msg["chunk"] = chunk_size
+
+    return msg
 end

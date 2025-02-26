@@ -2,33 +2,6 @@
 import DataStructures: PriorityQueue, dequeue!, enqueue!
 
 """
-    messages_from_match(matched_orders, book, params)
-
-Create messages about "matched_orders" for both affected agents and reporting agents.
-"""
-function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64,
-                                                          Int64, Int64,
-                                                          Int64, Float64,
-                                                          Int64}},
-                             book::Book)
-    msgs = Vector{Dict}()
-    for (matched_agent, matched_order, active_agent, active_order,
-         trade_size, price, order_size) in matched_orders
-        # send message to affected agent
-        msg = Dict{String, Union{String, Int64, Float64, Bool}}()
-        msg["recipient"] = matched_agent
-        msg["book"] = book.symbol
-        msg["activation_time"] = book.time
-        msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
-        msg["action"] = "UPDATE_ORDER"
-        msg["order_id"] = matched_order
-        msg["order_size"] = order_size
-        push!(msgs, msg)
-    end
-    return msgs
-end
-
-"""
     add_new_msgs(messages, new_msgs)
 
 Add "new_msgs" to the messages queue with priority equal
@@ -53,19 +26,6 @@ function update_mid_price!(simulation::Dict, previous_time::Int64, new_time::Int
         simulation["mid_price"][simulation["current_time"]:end] .= mid_price(book)
     else
         simulation["mid_price"][simulation["current_time"]:(new_time-1)] .= mid_price(book)
-    end
-end
-
-"""
-    update_fundamental_price!(params, current_time)
-
-Update the fundamental price state in the parameters dictionary.
-"""
-function update_fundamental_price!(params::Dict, current_time::Int64)
-    if haskey(params, "fundamental_dynamics")
-        if current_time <= params["end_time"]
-           params["fundamental_price"] = params["fundamental_dynamics"][current_time]
-        end
     end
 end
 
@@ -106,7 +66,6 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         # check time and update simulation state if needed
         if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results for end_time and initial_time
             update_mid_price!(simulation, previous_time, msg["activation_time"], book)
-            update_fundamental_price!(params, msg["activation_time"])
             if params["snapshots"]
                 simulation["snapshots"][simulation["current_time"]] = market_depth(book)
             end

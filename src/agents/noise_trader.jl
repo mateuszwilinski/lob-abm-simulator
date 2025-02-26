@@ -33,27 +33,6 @@ function initiate!(agent::NoiseTrader, book::Book, params::Dict)
 end
 
 """
-    create_mkt_order(agent, symbol, order_id)
-
-Create new market order with "order_id" for "agent" and "symbol".
-"""
-function create_mkt_order(agent::NoiseTrader, symbol::String, order_id::Int64)
-    order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-    return MarketOrder(order_size, rand(Bool), order_id, agent.id, symbol)
-end
-
-"""
-    create_lmt_order(agent, symbol, order_id, price)
-
-Create new limit order with "order_id" and "price" for "agent" and "symbol".
-"""
-function create_lmt_order(agent::NoiseTrader, symbol::String,
-                          order_id::Int64, price::Float64)
-    order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-    return LimitOrder(price, order_size, rand(Bool), order_id, agent.id, symbol)
-end
-
-"""
     action!(agent, book, agents, params, simulation, msg)
 
 Activate an agent, trade or cancel an existing trade and send a new message.
@@ -66,53 +45,35 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
     # agent trades
     if msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
-        order = create_mkt_order(agent, book.symbol, simulation["last_id"])
-        if params["save_orders"]
-            save_order!(simulation, order, agent)
-        end
-        matched_orders = add_order!(book, order)
-        # TODO:
-        # - Maybe trades should go straight to simulation["trades"]?
-        #   - This way we would not have to keep them in book and safe some memory?
-        # - Do we use book.trades for anything else then simulation outcome?
-        #   - We could potentiallly if some agents would react on trades?
-        add_trades!(book, matched_orders)
-        append!(msgs, messages_from_match(matched_orders, book))
+        order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+        order = MarketOrder(order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol)
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
+        append!(msgs, matching_msgs)
 
         rate = agent.market_rate
     elseif msg["action"] == "LIMIT_ORDER"
         price = mid_price(book)
         if isnan(price)
-            price = params["fundamental_price"]  # TODO: this may depend on time
+            price = params["fundamental_dynamics"][simulation["current_time"]]
         end
         price += randn() * agent.sigma
         simulation["last_id"] += 1
-        order = create_lmt_order(agent, book.symbol, simulation["last_id"], price)
-        if params["save_orders"]
-            save_order!(simulation, order, agent)
-        end
-        matched_orders = add_order!(book, order)
-        add_trades!(book, matched_orders)
-        append!(msgs, messages_from_match(matched_orders, book))
-        if get_size(order) > 0
-            agent.orders[order.id] = order
-        end
+        order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+        order = LimitOrder(price, order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol;
+                           tick_size=book.tick_size)
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
+        append!(msgs, matching_msgs)
 
         rate = agent.limit_rate
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
             order_id = rand(keys(agent.orders))
-            if params["save_cancelattions"]
-                save_cancel!(simulation, order_id, agent)
-            end
-            cancel_order!(order_id, book, agent)
+            cancel_order!(order_id, book, agent, simulation, params)
         end
 
         rate = agent.cancel_rate
     elseif msg["action"] == "UPDATE_ORDER"
-        if msg["order_size"] == 0
-            delete!(agent.orders, msg["order_id"])
-        end
+        # that is the only case when noise trades dpes not send new message
         return msgs
     else
         throw(error("Unknown action for a Noise Trader."))

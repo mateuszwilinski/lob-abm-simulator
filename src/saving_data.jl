@@ -1,14 +1,14 @@
 
 """
-    save_order!(simulation, order, agent)
+    save_order!(simulation, order)
 
 Save a given market order to the simulation structure.
 """
-function save_order!(simulation::Dict, order::MarketOrder, agent::Agent)
+function save_order!(simulation::Dict, order::MarketOrder)
     push!(simulation["orders"],
           Int64[
             order.id,
-            agent.id,
+            order.agent,
             simulation["current_time"],
             order.size[],
             Int64(order.is_bid),
@@ -18,15 +18,15 @@ function save_order!(simulation::Dict, order::MarketOrder, agent::Agent)
 end
 
 """
-    save_order!(simulation, order, agent)
+    save_order!(simulation, order)
 
 Save a given limit order to the simulation structure.
 """
-function save_order!(simulation::Dict, order::LimitOrder, agent::Agent)
+function save_order!(simulation::Dict, order::LimitOrder)
     push!(simulation["orders"],
           Union{Int64, Float64}[
             order.id,
-            agent.id,
+            order.agent,
             simulation["current_time"],
             order.size[],
             Int64(order.is_bid),

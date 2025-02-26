@@ -8,8 +8,8 @@ include("../src/orders.jl")
 include("../src/books.jl")
 include("../src/agents.jl")
 include("../src/saving_data.jl")
-include("../src/trading.jl")
-include("../src/matching.jl")
+include("../src/handling_order.jl")
+include("../src/changing_order.jl")
 include("../src/market_state.jl")
 include("../src/simulation.jl")
 include("initiate.jl")
@@ -47,17 +47,12 @@ function main()
     params["initial_time"] = 1  # TODO: Initial time cannot be zero or negative.
     params["fundamental_price"] = 100.0
     params["snapshots"] = false
-    params["save_orders"] = false
-    params["save_cancelattions"] = false
+    params["save_events"] = false
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
-    # sgn = -1
-    # for i in 20000:20000:params["end_time"]
-    #     sgn *= -1
-    #     params["fundamental_dynamics"][i:(i-19999)] .+= (sgn + 1) * 25.0 + params["fundamental_price"]
-    # end
     params["fundamental_dynamics"][Int(end_time / 4):end] .= 0.7 * params["fundamental_price"]
     params["fundamental_dynamics"][Int(end_time / 2):end] .= 1.0 * params["fundamental_price"]
     params["fundamental_dynamics"][Int(3 * end_time / 4):end] .= 0.7 * params["fundamental_price"]
+    params["tick_size"] = 0
 
     # Agents
     agents, n_agents = initiate_agents(mm1, mm2, mm3, mt1, mt2, mt3, fund1, fund2, fund3, fund4, chart1, chart2, chart3, chart4, nois1)
@@ -89,7 +84,8 @@ function main()
         NaN,
         params["initial_time"],
         "ABC",
-        Vector{Trade}()
+        Vector{Trade}(),
+        params["tick_size"]
     )
     
     book.bids = bids
@@ -109,8 +105,8 @@ function main()
     for k in keys(simulation_outcome["mid_price"])
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
-    writedlm(string("../plots/results/mid_price_", setting, "_", experiment, ".csv"), mid_price, ";")
-    writedlm(string("../plots/results/trades_", setting, "_", experiment, ".csv"), simulation_outcome["trades"], ";")
+    writedlm(string("../plots/results/_mid_price_", setting, "_", experiment, ".csv"), mid_price, ";")
+    writedlm(string("../plots/results/_trades_", setting, "_", experiment, ".csv"), simulation_outcome["trades"], ";")
     if params["snapshots"]
         snapshots = zeros(0, 3)
         for (t, v) in simulation_outcome["snapshots"]
@@ -118,21 +114,19 @@ function main()
                 snapshots = vcat(snapshots, [t v[i, 1] v[i, 2]])
             end
         end
-        writedlm(string("../plots/results/snapshots_", setting, "_", experiment, ".csv"), snapshots, ";")
+        writedlm(string("../plots/results/_snapshots_", setting, "_", experiment, ".csv"), snapshots, ";")
     end
-    if params["save_cancelattions"]
+    if params["save_events"]
         cancellations = zeros(Int64, 0, 3)
         for v in simulation_outcome["cancellations"]
             cancellations = vcat(cancellations, [v[1] v[2] v[3]])
         end
-        writedlm(string("../plots/results/cancellations_", setting, "_", experiment, ".csv"), cancellations, ";")
-    end
-    if params["save_orders"]
+        writedlm(string("../plots/results/_cancellations_", setting, "_", experiment, ".csv"), cancellations, ";")
         all_orders = zeros(Union{Int64, Float64}, 0, 7)
         for v in simulation_outcome["orders"]
             all_orders = vcat(all_orders, [v[1] v[2] v[3] v[4] v[5] v[6] v[7]])
         end
-        writedlm(string("../plots/results/orders_", setting, "_", experiment, ".csv"), all_orders, ";")
+        writedlm(string("../plots/results/_orders_", setting, "_", experiment, ".csv"), all_orders, ";")
     end
     println(mid_price[1000:100:2000])
 end

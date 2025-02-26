@@ -45,45 +45,28 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     if msg["action"] == "LIMIT_ORDER"
         # build limit order
         current_mid_price = mid_price(book)
+        fundamental_price = params["fundamental_dynamics"][simulation["current_time"]]
         if isnan(current_mid_price)
-            current_mid_price = params["fundamental_price"]
+            current_mid_price = fundamental_price
         end
-        ret = agent.coeff * (params["fundamental_price"] - current_mid_price) + randn() * agent.sigma
+        ret = agent.coeff * (fundamental_price - current_mid_price) + randn() * agent.sigma
         expected_price = current_mid_price + ret
 
         is_bid = (ret > 0.0)
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-        order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
+
+        order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol;
+                           tick_size=book.tick_size)
 
         # cancel inconsistent orders
-        for (order_id, o) in agent.orders
-            if o.is_bid != is_bid
-                if params["save_cancelattions"]
-                    save_cancel!(simulation, order_id, agent)
-                end
-                cancel_order!(order_id, book, agent)
-            elseif (((o.price > expected_price) && o.is_bid) ||
-                    ((o.price < expected_price) && !o.is_bid))
-                if params["save_cancelattions"]
-                    save_cancel!(simulation, order_id, agent)
-                end
-                cancel_order!(order_id, book, agent)
-            end
-        end
+        cancel_inconsistent_orders!(agent, book, is_bid, params, simulation, expected_price)
 
-        # match new limit order
-        if params["save_orders"]
-            save_order!(simulation, order, agent)
-        end
-        matched_orders = add_order!(book, order)
-        add_trades!(book, matched_orders)
-        if get_size(order) > 0
-            agent.orders[order.id] = order
-        end
-        append!(msgs, messages_from_match(matched_orders, book))
+        # pass new limit order
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
+        append!(msgs, matching_msgs)
 
-        # sending expiration message
+        # send expiration message
         expire = Dict{String, Union{String, Int64, Float64, Bool}}()
         expire["recipient"] = agent.id
         expire["book"] = book.symbol
@@ -101,32 +84,23 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "MARKET_ORDER"
         # sending market order
         current_mid_price = mid_price(book)
-        ret = agent.coeff * (params["fundamental_price"] - current_mid_price) + randn() * agent.sigma
+        fundamental_price = params["fundamental_dynamics"][simulation["current_time"]]
+        ret = agent.coeff * (fundamental_price - current_mid_price) + randn() * agent.sigma
 
         if (book.best_ask - book.best_bid - 2.0 * abs(ret)) < 0.0
             # prepare market order
             is_bid = (ret > 0.0)
             simulation["last_id"] += 1
             order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+
             order = MarketOrder(order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
 
             # cancel inconsistent orders
-            for (order_id, o) in agent.orders
-                if o.is_bid != is_bid  # TODO: maybe this should depend on the price of "o" (and the fundamental price)??
-                    if params["save_cancelattions"]
-                        save_cancel!(simulation, order_id, agent)
-                    end
-                    cancel_order!(order_id, book, agent)
-                end
-            end
+            cancel_inconsistent_orders!(agent, book, is_bid, params, simulation)
 
             # match new market order
-            if params["save_orders"]
-                save_order!(simulation, order, agent)
-            end
-            matched_orders = add_order!(book, order)
-            add_trades!(book, matched_orders)
-            append!(msgs, messages_from_match(matched_orders, book))
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
+            append!(msgs, matching_msgs)
         end  # TODO: should we cancel inconsistent limit orders in this case?
 
         # agent sends next order message
@@ -137,15 +111,10 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         order_id = msg["order_id"]
         if order_id in keys(agent.orders)
-            if params["save_cancelattions"]
-                save_cancel!(simulation, order_id, agent)
-            end
-            cancel_order!(order_id, book, agent)
+            cancel_order!(order_id, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
-        if msg["order_size"] == 0
-            delete!(agent.orders, msg["order_id"])
-        end
+        nothing
     else
         throw(error("Unknown action for a Fundamental Trader."))
     end

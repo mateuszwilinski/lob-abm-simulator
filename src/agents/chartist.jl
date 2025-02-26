@@ -46,47 +46,31 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         # prepare limit order
         current_mid_price = mid_price(book)
         previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
-        if isnan(current_mid_price) | isnan(previous_mid_price)
-            ret = randn() * agent.sigma
-            expected_price = params["fundamental_price"] + ret
-        else
-            ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
-            expected_price = current_mid_price + ret
-        end
+        fundamental_price = params["fundamental_dynamics"][simulation["current_time"]]
 
-        is_bid = (ret > 0.0)  # TODO: what to do when ret = 0.0 ???
+        expected_price = predict_price(
+            current_mid_price,
+            previous_mid_price,
+            fundamental_price,
+            agent.coeff,
+            agent.sigma
+            )
+
+        is_bid = (expected_price > current_mid_price)  # TODO: what to do when ret = 0.0 ???
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-        order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
+
+        order = LimitOrder(expected_price, order_size, is_bid, simulation["last_id"], agent.id, book.symbol;
+                           tick_size=book.tick_size)
 
         # cancel inconsistent orders
-        for (order_id, o) in agent.orders
-            if o.is_bid != is_bid
-                if params["save_cancelattions"]
-                    save_cancel!(simulation, order_id, agent)
-                end
-                cancel_order!(order_id, book, agent)
-            elseif (((o.price > expected_price) && o.is_bid) ||
-                    ((o.price < expected_price) && !o.is_bid))
-                if params["save_cancelattions"]
-                    save_cancel!(simulation, order_id, agent)
-                end
-                cancel_order!(order_id, book, agent)
-            end
-        end
+        cancel_inconsistent_orders!(agent, book, is_bid, params, simulation, expected_price)
 
-        # match new limit order
-        if params["save_orders"]
-            save_order!(simulation, order, agent)
-        end
-        matched_orders = add_order!(book, order)
-        add_trades!(book, matched_orders)
-        if get_size(order) > 0
-            agent.orders[order.id] = order
-        end
-        append!(msgs, messages_from_match(matched_orders, book))
+        # pass new limit order to the book
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
+        append!(msgs, matching_msgs)
 
-        # sending expiration message
+        # send expiration message
         expire = Dict{String, Union{String, Int64, Float64, Bool}}()
         expire["recipient"] = agent.id
         expire["book"] = book.symbol
@@ -96,13 +80,13 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         expire["order_id"] = order.id
         push!(msgs, expire)
 
-        # agent sends next order message
+        # prepare next limit order message
         activation_time_diff = ceil(Int64, rand(Exponential(agent.limit_rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff
         push!(msgs, response)
     elseif msg["action"] == "MARKET_ORDER"
-        # sending market order
+        # send market order
         current_mid_price = mid_price(book)
         previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
         ret = agent.coeff * (current_mid_price - previous_mid_price) + randn() * agent.sigma
@@ -112,28 +96,18 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
             is_bid = (ret > 0.0)
             simulation["last_id"] += 1
             order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+
             order = MarketOrder(order_size, is_bid, simulation["last_id"], agent.id, book.symbol)
 
             # cancel inconsistent orders
-            for (order_id, o) in agent.orders
-                if o.is_bid != is_bid  # TODO: maybe this should depend on the price of "o" (and the expected price)??
-                    if params["save_cancelattions"]
-                        save_cancel!(simulation, order_id, agent)
-                    end
-                    cancel_order!(order_id, book, agent)
-                end
-            end
+            cancel_inconsistent_orders!(agent, book, is_bid, params, simulation)
 
             # match new market order
-            if params["save_orders"]
-                save_order!(simulation, order, agent)
-            end
-            matched_orders = add_order!(book, order)
-            add_trades!(book, matched_orders)
-            append!(msgs, messages_from_match(matched_orders, book))
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
+            append!(msgs, matching_msgs)
         end
 
-        # agent sends next order message
+        # prepare next market order message
         activation_time_diff = ceil(Int64, rand(Exponential(agent.market_rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff
@@ -141,17 +115,28 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         order_id = msg["order_id"]
         if order_id in keys(agent.orders)
-            if params["save_cancelattions"]
-                save_cancel!(simulation, order_id, agent)
-            end
-            cancel_order!(order_id, book, agent)
+            cancel_order!(order_id, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
-        if msg["order_size"] == 0
-            delete!(agent.orders, msg["order_id"])
-        end
+        nothing
     else
         throw(error("Unknown action for a Chartist Trader."))
     end
     return msgs
+end
+
+"""
+    predict_price(current_mid_price, previous_mid_price, fundamental_price, coeff, sigma)
+
+Predict future price using the chartist model.
+"""
+function predict_price(current_mid_price::F, previous_mid_price::F, fundamental_price::F, coeff::F, sigma::F) where {F <: Real}
+    if isnan(current_mid_price) | isnan(previous_mid_price)
+        ret = randn() * sigma
+        expected_price = fundamental_price + ret
+    else
+        ret = coeff * (current_mid_price - previous_mid_price) + randn() * sigma
+        expected_price = current_mid_price + ret
+    end
+    return expected_price
 end

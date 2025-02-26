@@ -36,55 +36,40 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
         # cancel previous ladder
         if !isempty(agent.orders)
             for order_id in keys(agent.orders)
-                if params["save_cancelattions"]
-                    save_cancel!(simulation, order_id, agent)
-                end
-                cancel_order!(order_id, book, agent)
+                cancel_order!(order_id, book, agent, simulation, params)
             end
         end
+
         # build new ladder
         ask = book.best_ask
         bid = book.best_bid
         if isnan(ask) | isnan(bid)
-            ask = params["fundamental_price"] + agent.q
-            bid = params["fundamental_price"] - agent.q
+            ask = params["fundamental_dynamics"][simulation["current_time"]] + agent.q
+            bid = params["fundamental_dynamics"][simulation["current_time"]] - agent.q
         end
         for k in 0:agent.K
             # ask ladder step
             simulation["last_id"] += 1
-            order = LimitOrder(ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id, book.symbol)
-            if params["save_orders"]
-                save_order!(simulation, order, agent)
-            end
-            matched_orders = add_order!(book, order)
-            add_trades!(book, matched_orders)
-            if get_size(order) > 0
-                agent.orders[order.id] = order
-            end
-            append!(msgs, messages_from_match(matched_orders, book))
+            order = LimitOrder(ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id, book.symbol;
+                               tick_size=book.tick_size)
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
+            append!(msgs, matching_msgs)
+
             # bid ladder step
             simulation["last_id"] += 1
-            order = LimitOrder(bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id, book.symbol)
-            if params["save_orders"]
-                save_order!(simulation, order, agent)
-            end
-            matched_orders = add_order!(book, order)
-            add_trades!(book, matched_orders)
-            if get_size(order) > 0
-                agent.orders[order.id] = order
-            end
-            append!(msgs, messages_from_match(matched_orders, book))
+            order = LimitOrder(bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id, book.symbol;
+                               tick_size=book.tick_size)
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
+            append!(msgs, matching_msgs)
         end
 
-        # agent sends next ladder message
+        # send next ladder message
         activation_time_diff = ceil(Int64, rand(Exponential(agent.rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff
         push!(msgs, response)
     elseif msg["action"] == "UPDATE_ORDER"
-        if msg["order_size"] == 0
-            delete!(agent.orders, msg["order_id"])
-        end
+        nothing
     else
         throw(error("Unknown action for a Market Maker."))
     end
