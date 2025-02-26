@@ -56,6 +56,8 @@ function main()
 
     # Agents
     agents, n_agents = initiate_agents(mm1, mm2, mm3, mt1, mt2, mt3, fund1, fund2, fund3, fund4, chart1, chart2, chart3, chart4, nois1)
+    # agents = initiate_agents(agents_params, agents_counts)
+    # n_agents = sum(values(agents_counts))
 
     # Build starting orders
     asks = Dict{Float64, OrderedSet}()
