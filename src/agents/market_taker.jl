@@ -58,7 +58,7 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
         order = MarketOrder(msg["chunk"], msg["is_bid"], simulation["last_id"], agent.id, book.symbol)
-        matching_msgs = pass_order!(book, order, agent, simulation, params)
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
     else
         throw(error("Unknown action for a Market Taker."))  # TODO: Maybe we should add the specific action here?

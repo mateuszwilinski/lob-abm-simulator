@@ -63,7 +63,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
         cancel_inconsistent_orders!(agent, book, is_bid, params, simulation, expected_price)
 
         # pass new limit order
-        matching_msgs = pass_order!(book, order, agent, simulation, params)
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
 
         # send expiration message
@@ -99,7 +99,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
             cancel_inconsistent_orders!(agent, book, is_bid, params, simulation)
 
             # match new market order
-            matching_msgs = pass_order!(book, order, agent, simulation, params)
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
             append!(msgs, matching_msgs)
         end  # TODO: should we cancel inconsistent limit orders in this case?
 
@@ -114,9 +114,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
             cancel_order!(order_id, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
-        if msg["order_size"] == 0
-            delete!(agent.orders, msg["order_id"])
-        end
+        nothing
     else
         throw(error("Unknown action for a Fundamental Trader."))
     end

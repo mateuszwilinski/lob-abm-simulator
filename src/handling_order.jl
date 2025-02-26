@@ -1,36 +1,58 @@
 
 """
-    pass_order!(book, order, agent, simulation, parameters)
+    pass_order!(book, order, agents, simulation, parameters)
 
 Passes an "order" (limit order) to the "book" and save it if necessary.
 Returns messages to be sent to affected agents.
 """
-function pass_order!(book::Book, order::LimitOrder, agent::Agent, simulation::Dict, parameters::Dict)
+function pass_order!(book::Book, order::LimitOrder, agents::Dict{Int64, Agent}, simulation::Dict, parameters::Dict)
+    # save order if requested
     if parameters["save_events"]
-        save_order!(simulation, order, agent)
+        save_order!(simulation, order, agents[order.agent])
     end
+    # add order to the book and get matched orders
     matched_orders = add_order!(book, order)
+
+    # remove the matched orders from the agent's orders
+    remove_matched_orders!(matched_orders, agents)
+
+    # save trades
     add_trades!(book, matched_orders)
+
+    # add the remaining order to the agent's orders
     if get_size(order) > 0
-        agent.orders[order.id] = order
+        agents[order.agent].orders[order.id] = order
     end
+
+    # create messages for affected agents
     msgs = messages_from_match(matched_orders, book)
+
     return msgs
 end
 
 """
-    pass_order!(book, order, agent, simulation, parameters)
+    pass_order!(book, order, agents, simulation, parameters)
 
 Passes an "order" (market order) to the "book" and save it if necessary.
 Returns messages to be sent to affected agents.
 """
-function pass_order!(book::Book, order::MarketOrder, agent::Agent, simulation::Dict, parameters::Dict)
+function pass_order!(book::Book, order::MarketOrder, agents::Dict{Int64, Agent}, simulation::Dict, parameters::Dict)
+    # save order if requested
     if parameters["save_events"]
-        save_order!(simulation, order, agent)
+        save_order!(simulation, order, agents[order.agent])
     end
+    # add order to the book and get matched orders
     matched_orders = add_order!(book, order)
+
+    # remove the matched orders from the agent's orders
+    remove_matched_orders!(matched_orders, agents)
+
+    # save trades
     add_trades!(book, matched_orders)
+
+    # create messages for affected agents
     msgs = messages_from_match(matched_orders, book)
+
     return msgs
 end
 
@@ -188,8 +210,29 @@ function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64,
         msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
         msg["action"] = "UPDATE_ORDER"
         msg["order_id"] = matched_order
-        msg["order_size"] = order_size
+        msg["order_size"] = order_size  # TODO: traded size should also proabably be passed
         push!(msgs, msg)
     end
     return msgs
+end
+
+"""
+    remove_matched_orders!(matched_orders, agents)
+
+Remove "matched_orders" from "agents" orders.
+"""
+function remove_matched_orders!(matched_orders::Vector{Tuple{Int64, Int64, Int64,
+                                                             Int64, Int64, Float64, Int64}},
+                                agents::Dict{Int64, Agent})
+    if !isempty(matched_orders)
+        # check whether the last matching was not partial
+        (agent_id, order_id,) = matched_orders[end]
+        if get_size(agents[agent_id].orders[order_id]) == 0
+            delete!(agents[agent_id].orders, order_id)
+        end
+        # remove all other orders
+        for (agent_id, order_id,) in matched_orders[1:(end-1)]
+            delete!(agents[agent_id].orders, order_id)
+        end
+    end
 end

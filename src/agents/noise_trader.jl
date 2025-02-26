@@ -47,7 +47,7 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
         order = MarketOrder(order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol)
-        matching_msgs = pass_order!(book, order, agent, simulation, params)
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
 
         rate = agent.market_rate
@@ -61,7 +61,7 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
         order = LimitOrder(price, order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol;
                            tick_size=book.tick_size)
-        matching_msgs = pass_order!(book, order, agent, simulation, params)
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
 
         rate = agent.limit_rate
@@ -73,9 +73,7 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
 
         rate = agent.cancel_rate
     elseif msg["action"] == "UPDATE_ORDER"
-        if msg["order_size"] == 0
-            delete!(agent.orders, msg["order_id"])
-        end
+        # that is the only case when noise trades dpes not send new message
         return msgs
     else
         throw(error("Unknown action for a Noise Trader."))

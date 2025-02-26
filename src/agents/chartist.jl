@@ -67,7 +67,7 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         cancel_inconsistent_orders!(agent, book, is_bid, params, simulation, expected_price)
 
         # pass new limit order to the book
-        matching_msgs = pass_order!(book, order, agent, simulation, params)
+        matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
 
         # send expiration message
@@ -80,7 +80,7 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         expire["order_id"] = order.id
         push!(msgs, expire)
 
-        # prepare next order message
+        # prepare next limit order message
         activation_time_diff = ceil(Int64, rand(Exponential(agent.limit_rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff
@@ -103,11 +103,11 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
             cancel_inconsistent_orders!(agent, book, is_bid, params, simulation)
 
             # match new market order
-            matching_msgs = pass_order!(book, order, agent, simulation, params)
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
             append!(msgs, matching_msgs)
         end
 
-        # prepare next order message
+        # prepare next market order message
         activation_time_diff = ceil(Int64, rand(Exponential(agent.market_rate)))
         response = copy(msg)
         response["activation_time"] += activation_time_diff
@@ -118,9 +118,7 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
             cancel_order!(order_id, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
-        if msg["order_size"] == 0
-            delete!(agent.orders, msg["order_id"])
-        end
+        nothing
     else
         throw(error("Unknown action for a Chartist Trader."))
     end

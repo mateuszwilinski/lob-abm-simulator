@@ -52,14 +52,14 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
             simulation["last_id"] += 1
             order = LimitOrder(ask + k * agent.q, agent.size, false, simulation["last_id"], agent.id, book.symbol;
                                tick_size=book.tick_size)
-            matching_msgs = pass_order!(book, order, agent, simulation, params)
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
             append!(msgs, matching_msgs)
 
             # bid ladder step
             simulation["last_id"] += 1
             order = LimitOrder(bid - k * agent.q, agent.size, true, simulation["last_id"], agent.id, book.symbol;
                                tick_size=book.tick_size)
-            matching_msgs = pass_order!(book, order, agent, simulation, params)
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
             append!(msgs, matching_msgs)
         end
 
@@ -69,9 +69,7 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
         response["activation_time"] += activation_time_diff
         push!(msgs, response)
     elseif msg["action"] == "UPDATE_ORDER"
-        if msg["order_size"] == 0
-            delete!(agent.orders, msg["order_id"])
-        end
+        nothing
     else
         throw(error("Unknown action for a Market Maker."))
     end
