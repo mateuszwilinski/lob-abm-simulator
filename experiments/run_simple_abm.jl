@@ -1,0 +1,229 @@
+
+using DelimitedFiles
+using Statistics
+using ArgParse
+
+import Random
+
+include("../src/orders.jl")
+include("../src/books.jl")
+include("../src/agents.jl")
+include("../src/saving_data.jl")
+include("../src/handling_order.jl")
+include("../src/changing_order.jl")
+include("../src/market_state.jl")
+include("../src/simulation.jl")
+include("configs/simple_abm_params.jl")
+
+"""
+    function parse_commandline()
+
+Process command line arguments.
+"""
+function parse_commandline()
+    s = ArgParseSettings()
+    @add_arg_table s begin
+        "--seed"
+            help = "seed"
+            arg_type = Int
+            default = 1
+        "--experiment"
+            help = "experiment"
+            arg_type = Int
+            default = 1
+        "--tick_size"
+            help = "price tick size"
+            arg_type = Float64
+            default = 0.0
+        "--save_events", "-s"
+            help = "save events?"
+            action = :store_true
+        "--snapshots", "-p"
+            help = "save snapshots?"
+            action = :store_true
+        "--end_time", "-e"
+            help = "simulation length"
+            arg_type = Int
+            default = 360000
+        "--setting", "-t"
+            help = "simulation setting"
+            arg_type = Int
+            default = 1
+        "--mm1"
+            help = "number of MarketMaker(1) agents"
+            arg_type = Int
+            default = 20
+        "--mm2"
+            help = "number of MarketMaker(2) agents"
+            arg_type = Int
+            default = 20
+        "--mm3"
+            help = "number of MarketMaker(3) agents"
+            arg_type = Int
+            default = 20
+        "--mt1"
+            help = "number of MarketTaker(1) agents"
+            arg_type = Int
+            default = 10
+        "--mt2"
+            help = "number of MarketTaker(2) agents"
+            arg_type = Int
+            default = 10
+        "--mt3"
+            help = "number of MarketTaker(3) agents"
+            arg_type = Int
+            default = 10
+        "--fund1"
+            help = "number of Fundamentalist(1) agents"
+            arg_type = Int
+            default = 10
+        "--fund2"
+            help = "number of Fundamentalist(2) agents"
+            arg_type = Int
+            default = 10
+        "--fund3"
+            help = "number of Fundamentalist(3) agents"
+            arg_type = Int
+            default = 10
+        "--fund4"
+            help = "number of Fundamentalist(4) agents"
+            arg_type = Int
+            default = 10
+        "--chart1"
+            help = "number of Chartist(1) agents"
+            arg_type = Int
+            default = 100
+        "--chart2"
+            help = "number of Chartist(2) agents"
+            arg_type = Int
+            default = 100
+        "--chart3"
+            help = "number of Chartist(3) agents"
+            arg_type = Int
+            default = 100
+        "--chart4"
+            help = "number of Chartist(4) agents"
+            arg_type = Int
+            default = 100
+        "--nois1"
+            help = "number of NoiseTrader(1) agents"
+            arg_type = Int
+            default = 1060
+    end
+    return parse_args(s)
+end
+
+"""
+    main()
+
+Build and run simulation with market makers and noise agents.
+"""
+function main()
+    # Set simulation parameters
+    args = parse_commandline()
+
+    setting = args["setting"]
+    experiment = args["experiment"]
+    seed = args["seed"]
+
+    params = Dict()
+
+    params["end_time"] = args["end_time"]
+    params["snapshots"] = args["snapshots"]
+    params["save_events"] = args["save_events"]
+    params["tick_size"] = args["tick_size"]
+
+    params["initial_time"] = 1  # TODO: Initial time cannot be zero or negative.
+    params["fundamental_price"] = 100.0
+    params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
+    params["fundamental_dynamics"][Int(params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
+    params["fundamental_dynamics"][Int(params["end_time"] / 2):end] .= 1.0 * params["fundamental_price"]
+    params["fundamental_dynamics"][Int(3 * params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
+
+    # Initiate agents
+    agents_counts = [
+        args["mm1"], args["mm2"], args["mm3"],
+        args["mt1"], args["mt2"], args["mt3"],
+        args["fund1"], args["fund2"], args["fund3"], args["fund4"],
+        args["chart1"], args["chart2"], args["chart3"], args["chart4"],
+        args["nois1"]
+    ]
+    agents = initiate_agents(agents_params, agents_counts, agents_names)
+    n_agents = sum(values(agents_counts))
+
+    # Build starting orders
+    asks = Dict{Float64, OrderedSet}()
+    asks[101.0] = OrderedSet()
+    push!(asks[101.0], LimitOrder(101.0, 15, false, 1, 1000, "ABC"))
+    agents[1000].orders[asks[101.0][1].id] = asks[101.0][1]
+    push!(asks[101.0], LimitOrder(101.0, 15, false, 2, 1000, "ABC"))
+    agents[1000].orders[asks[101.0][2].id] = asks[101.0][2]
+    push!(asks[101.0], LimitOrder(101.0, 20, false, 3, 1000, "ABC"))
+    agents[1000].orders[asks[101.0][3].id] = asks[101.0][3]
+    
+    bids = Dict{Float64, OrderedSet}()
+    bids[99.0] = OrderedSet()
+    push!(bids[99.0], LimitOrder(99.0, 15, true, 4, 1000, "ABC"))
+    agents[1000].orders[bids[99.0][1].id] = bids[99.0][1]
+    push!(bids[99.0], LimitOrder(99.0, 15, true, 5, 1000, "ABC"))
+    agents[1000].orders[bids[99.0][2].id] = bids[99.0][2]
+    push!(bids[99.0], LimitOrder(99.0, 20, true, 6, 1000, "ABC"))
+    agents[1000].orders[bids[99.0][3].id] = bids[99.0][3]
+
+    # Initiate order book
+    book = Book(
+        Dict{Float64, OrderedSet}(),
+        Dict{Float64, OrderedSet}(),
+        NaN,
+        NaN,
+        params["initial_time"],
+        "ABC",
+        Vector{Trade}(),
+        params["tick_size"]
+    )
+    
+    book.bids = bids
+    book.asks = asks
+    update_best_bid!(book)
+    update_best_ask!(book)
+
+    params["first_id"] = 6
+
+    # Run simulation
+    Random.seed!(seed)
+    messages = PriorityQueue()  # TODO: Add correct types
+    simulation_outcome = run_simulation(agents, book, messages, params)
+    
+    # Save results
+    mid_price = zeros(simulation_outcome["current_time"])
+    for k in keys(simulation_outcome["mid_price"])
+        mid_price[k] = simulation_outcome["mid_price"][k]
+    end
+    writedlm(string("../plots/results/_mid_price_", setting, "_", experiment, ".csv"), mid_price, ";")
+    writedlm(string("../plots/results/_trades_", setting, "_", experiment, ".csv"), simulation_outcome["trades"], ";")
+    if params["snapshots"]
+        snapshots = zeros(0, 3)
+        for (t, v) in simulation_outcome["snapshots"]
+            for i in 1:size(v)[1]
+                snapshots = vcat(snapshots, [t v[i, 1] v[i, 2]])
+            end
+        end
+        writedlm(string("../plots/results/_snapshots_", setting, "_", experiment, ".csv"), snapshots, ";")
+    end
+    if params["save_events"]
+        println("Saving events")
+        cancellations = zeros(Int64, 0, 3)
+        for v in simulation_outcome["cancellations"]
+            cancellations = vcat(cancellations, [v[1] v[2] v[3]])
+        end
+        writedlm(string("../plots/results/_cancellations_", setting, "_", experiment, ".csv"), cancellations, ";")
+        all_orders = zeros(Union{Int64, Float64}, 0, 7)
+        for v in simulation_outcome["orders"]
+            all_orders = vcat(all_orders, [v[1] v[2] v[3] v[4] v[5] v[6] v[7]])
+        end
+        writedlm(string("../plots/results/_orders_", setting, "_", experiment, ".csv"), all_orders, ";")
+    end
+    println(mid_price[1000:100:2000])
+end
+
+main()

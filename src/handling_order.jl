@@ -8,7 +8,7 @@ Returns messages to be sent to affected agents.
 function pass_order!(book::Book, order::LimitOrder, agents::Dict{Int64, Agent}, simulation::Dict, parameters::Dict)
     # save order if requested
     if parameters["save_events"]
-        save_order!(simulation, order, agents[order.agent])
+        save_order!(simulation, order)
     end
     # add order to the book and get matched orders
     matched_orders = add_order!(book, order)
@@ -39,7 +39,7 @@ Returns messages to be sent to affected agents.
 function pass_order!(book::Book, order::MarketOrder, agents::Dict{Int64, Agent}, simulation::Dict, parameters::Dict)
     # save order if requested
     if parameters["save_events"]
-        save_order!(simulation, order, agents[order.agent])
+        save_order!(simulation, order)
     end
     # add order to the book and get matched orders
     matched_orders = add_order!(book, order)
