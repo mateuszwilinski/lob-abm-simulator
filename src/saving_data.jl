@@ -10,8 +10,36 @@ struct Event{T <: Int, F <: Float64}
     price::F
     direction::T  # -1 for buy, 1 for sell
     agent_id::T
+    cross_order::T
+    cross_agent::T
 end
 
+function Event(
+    time::T,
+    type::T,
+    order_id::T,
+    size::T,
+    price::F,
+    is_bid::Bool,
+    agent_id::T,
+    cross_order::T,
+    cross_agent::T
+    ) where {T <: Int, F <: Float64}
+    direction = is_bid ? -1 : 1  # TODO: make sure it is correct (!!!)
+    return Event(
+        time,
+        type,
+        order_id,
+        size,
+        price,
+        direction,
+        agent_id,
+        cross_order,
+        cross_agent
+        )
+end
+
+# Construct Event for non-executions
 function Event(
     time::T,
     type::T,
@@ -22,7 +50,7 @@ function Event(
     agent_id::T
     ) where {T <: Int, F <: Float64}
     direction = is_bid ? -1 : 1
-    return Event(time, type, order_id, size, price, direction, agent_id)
+    return Event(time, type, order_id, size, price, direction, agent_id, -1, -1)
 end
 
 """
@@ -36,7 +64,7 @@ function save_order!(simulation::Dict, order::MarketOrder)
             simulation["current_time"],
             0,  # 0 for market order
             order.id,
-            order.size[],
+            get_size(order),
             NaN,
             order.is_bid,  # TODO: change this to -1 for buy, 1 for sell
             order.agent
@@ -54,7 +82,7 @@ function save_order!(simulation::Dict, order::LimitOrder)
             simulation["current_time"],
             1,  # 1 for limit order
             order.id,
-            order.size[],
+            get_size(order),
             order.price,
             order.is_bid,
             order.agent
@@ -72,7 +100,7 @@ function save_cancel!(simulation::Dict, order::LimitOrder)
             simulation["current_time"],
             3,  # 3 for full order cancellation
             order.id,
-            order.size[],
+            get_size(order),
             order.price,
             order.is_bid,
             order.agent,
@@ -90,7 +118,7 @@ function save_modify!(simulation::Dict, order::LimitOrder)
             simulation["current_time"],
             2,  # 2 for order size modification
             order.id,
-            order.size[],
+            get_size(order),
             order.price,
             order.is_bid,
             order.agent,
@@ -113,7 +141,9 @@ function save_events_to_csv(events::Vector{Event}, filename::String)
                 "$(event.size),",
                 "$(event.price),",
                 "$(event.direction),",
-                "$(event.agent_id)"
+                "$(event.agent_id)",
+                "$(event.cross_order)",
+                "$(event.cross_agent)"
             ))
         end
     end
