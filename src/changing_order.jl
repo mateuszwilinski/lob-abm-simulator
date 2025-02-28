@@ -97,7 +97,7 @@ function modify_order!(
             parameters::Dict,
             simulation::Dict
             )
-    if (new_size <= 0) || (new_size >= order.size[])
+    if (new_size <= 0) || (new_size >= get_size(order))
         throw(error("New order size must be positive and smaller then the previous size."))
     end
     if order.is_bid
