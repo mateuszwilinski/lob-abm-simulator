@@ -171,9 +171,7 @@ function main()
         Dict{Float64, OrderedSet}(),
         NaN,
         NaN,
-        params["initial_time"],
         "ABC",
-        Vector{Trade}(),
         params["tick_size"]
     )
     
@@ -195,7 +193,6 @@ function main()
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
     writedlm(string("../results/_mid_price_", seed, "_", experiment, ".csv"), mid_price, ";")
-    writedlm(string("../results/_trades_", seed, "_", experiment, ".csv"), simulation_outcome["trades"], ";")
     if params["snapshots"]
         snapshots = zeros(0, 3)
         for (t, v) in simulation_outcome["snapshots"]

@@ -41,9 +41,6 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
     simulation = Dict()
     simulation["mid_price"] = zeros(params["end_time"])
     simulation["events"] = Vector{Event}()
-    simulation["snapshots"] = Dict{Int64, Matrix}()
-    simulation["trades"] = zeros(Union{Int64, Float64}, 0, 7)
-    simulation["orders"] = Set{Vector}()
     simulation["cancellations"] = Set{Vector}()
     simulation["current_time"] = params["initial_time"]
     simulation["last_id"] = params["first_id"]
@@ -53,11 +50,6 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
     for (_, agent) in agents
         new_msgs = initiate!(agent, book, params)
         add_new_msgs!(messages, new_msgs)
-    end
-
-    # initial tests  # TODO: more tests to add
-    if params["initial_time"] != book.time
-        throw(error("Book time and initial time inconsistent."))
     end
 
     # start simulation
@@ -70,12 +62,9 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
             if params["snapshots"]
                 simulation["snapshots"][simulation["current_time"]] = market_depth(book)
             end
-            simulation["trades"] = vcat(simulation["trades"], market_trades(book))
 
             previous_time = simulation["current_time"]
             simulation["current_time"] = msg["activation_time"]
-            book.time = simulation["current_time"]
-            empty!(book.trades)
         elseif msg["activation_time"] < simulation["current_time"]
             throw(error("Message activation time is in the past."))
         end

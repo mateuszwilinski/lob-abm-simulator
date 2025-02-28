@@ -6,9 +6,7 @@ mutable struct Book
     asks::Dict{Float64, OrderedSet{LimitOrder}}
     best_bid::Float64
     best_ask::Float64
-    time::Int64  # TODO: this seems to be useless
     symbol::String
-    trades::Vector{Trade}  # TODO: this seems to be useless
     tick_size::Float64
 end
 

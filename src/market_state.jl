@@ -27,16 +27,3 @@ function market_depth(book::Book)
     end
     return depth
 end
-
-"""
-    market_trades(book)
-
-Return all trades in the book.
-"""
-function market_trades(book::Book)
-    ts = zeros(Union{Int64, Float64}, 0, 7)
-    for t in book.trades
-        ts = vcat(ts, Union{Int64, Float64}[book.time t.price t.size t.active_order t.passive_order t.active_agent t.passive_agent])
-    end
-    return ts
-end
