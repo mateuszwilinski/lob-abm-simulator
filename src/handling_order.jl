@@ -16,7 +16,7 @@ function pass_order!(book::Book, order::Order, agents::Dict{Int64, Agent}, simul
 
     # save executions if needed
     if parameters["save_events"]
-        save_trades!(book, matched_events)
+        save_trades!(simulation, matched_events)
     end
 
     # remove the matched orders from the agent's orders
