@@ -68,7 +68,8 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
             order_id = rand(keys(agent.orders))
-            cancel_order!(order_id, book, agent, simulation, params)
+            order = agent.orders[order_id]
+            cancel_order!(order, book, agent, simulation, params)
         end
 
         rate = agent.cancel_rate

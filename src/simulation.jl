@@ -40,6 +40,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
     # initiate simulation state dictionary
     simulation = Dict()
     simulation["mid_price"] = zeros(params["end_time"])
+    simulation["events"] = Vector{Event}()
     simulation["snapshots"] = Dict{Int64, Matrix}()
     simulation["trades"] = zeros(Union{Int64, Float64}, 0, 7)
     simulation["orders"] = Set{Vector}()
@@ -64,7 +65,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         msg = dequeue!(messages)
 
         # check time and update simulation state if needed
-        if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results for end_time and initial_time
+        if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results at end_time and initial_time
             update_mid_price!(simulation, previous_time, msg["activation_time"], book)
             if params["snapshots"]
                 simulation["snapshots"][simulation["current_time"]] = market_depth(book)

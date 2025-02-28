@@ -46,7 +46,7 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
         # prepare limit order
         current_mid_price = mid_price(book)
         previous_mid_price = simulation["mid_price"][simulation["current_time"]-agent.horizon]
-        fundamental_price = params["fundamental_dynamics"][simulation["current_time"]]
+        fundamental_price = params["fundamental_dynamics"][simulation["current_time"]]  # TODO: try to get rid of it
 
         expected_price = predict_price(
             current_mid_price,
@@ -115,7 +115,8 @@ function action!(agent::Chartist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         order_id = msg["order_id"]
         if order_id in keys(agent.orders)
-            cancel_order!(order_id, book, agent, simulation, params)
+            order = agent.orders[order_id]
+            cancel_order!(order, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
         nothing

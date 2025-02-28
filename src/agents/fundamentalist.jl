@@ -111,7 +111,8 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         order_id = msg["order_id"]
         if order_id in keys(agent.orders)
-            cancel_order!(order_id, book, agent, simulation, params)
+            order = agent.orders[order_id]
+            cancel_order!(order, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
         nothing

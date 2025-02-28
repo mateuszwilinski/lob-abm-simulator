@@ -35,8 +35,8 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
     if msg["action"] == "LADDER_ORDERS"
         # cancel previous ladder
         if !isempty(agent.orders)
-            for order_id in keys(agent.orders)
-                cancel_order!(order_id, book, agent, simulation, params)
+            for o in values(agent.orders)
+                cancel_order!(o, book, agent, simulation, params)
             end
         end
 
