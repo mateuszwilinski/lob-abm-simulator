@@ -152,8 +152,8 @@ function save_events_to_csv(events::Vector{Event}, filename::String)
                 "$(event.size),",
                 "$(event.price),",
                 "$(event.direction),",
-                "$(event.agent_id)",
-                "$(event.cross_order)",
+                "$(event.agent_id),",
+                "$(event.cross_order),",
                 "$(event.cross_agent)"
             ))
         end

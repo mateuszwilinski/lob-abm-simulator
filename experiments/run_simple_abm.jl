@@ -192,7 +192,7 @@ function main()
     for k in keys(simulation_outcome["mid_price"])
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
-    writedlm(string("../results/_mid_price_", seed, "_", experiment, ".csv"), mid_price, ";")
+    writedlm(string("../results/mid_price_", seed, "_", experiment, ".csv"), mid_price, ";")
     if params["snapshots"]
         snapshots = zeros(0, 3)
         for (t, v) in simulation_outcome["snapshots"]
