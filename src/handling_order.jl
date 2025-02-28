@@ -12,15 +12,15 @@ function pass_order!(book::Book, order::Order, agents::Dict{Int64, Agent}, simul
     end
 
     # add order to the book and get matched orders
-    matched_orders = add_order!(book, order, simulation["current_time"])
+    matched_events = add_order!(book, order, simulation["current_time"])
 
     # save executions if needed
     if parameters["save_events"]
-        save_trades!(book, matched_orders)
+        save_trades!(book, matched_events)
     end
 
     # remove the matched orders from the agent's orders
-    remove_matched_orders!(matched_orders, agents)
+    remove_matched_events!(matched_events, agents)
 
     # decide what to do with the remaining order
     if get_size(order) > 0
@@ -28,7 +28,7 @@ function pass_order!(book::Book, order::Order, agents::Dict{Int64, Agent}, simul
     end
 
     # create messages for affected agents
-    msgs = messages_from_match(matched_orders, book, simulation)
+    msgs = messages_from_match(matched_events, book, simulation)
 
     return msgs
 end
@@ -68,10 +68,10 @@ end
 Adds (limit) "order" to the "book" and returns the matched orders.
 """
 function add_order!(book::Book, order::LimitOrder, time::Int64)
-    matched_orders = Vector{Event}()
+    match_events = Vector{Event}()
     if order.is_bid
         while (order.price >= book.best_ask) & (get_size(order) > 0)
-            append!(matched_orders, match_order!(book.asks[book.best_ask], order, time))
+            append!(match_events, match_order!(book.asks[book.best_ask], order, time))
             if isempty(book.asks[book.best_ask])
                 delete!(book.asks, book.best_ask)
                 update_best_ask!(book)
@@ -79,22 +79,14 @@ function add_order!(book::Book, order::LimitOrder, time::Int64)
         end
     else
         while (order.price <= book.best_bid) & (get_size(order) > 0)
-            append!(matched_orders, match_order!(book.bids[book.best_bid], order, time))
+            append!(match_events, match_order!(book.bids[book.best_bid], order, time))
             if isempty(book.bids[book.best_bid])
                 delete!(book.bids, book.best_bid)
                 update_best_bid!(book)
             end
         end
     end
-    return matched_orders
-end
-
-function shares_available(best_, order::Order)
-    if order.is_bid
-        return book.best_ask
-    else
-        return book.best_bid
-    end
+    return match_events
 end
 
 """
@@ -103,10 +95,10 @@ end
 Adds (market) "order" to the "book" and returns the matched orders.
 """
 function add_order!(book::Book, order::MarketOrder, time::Int64)
-    matched_orders = Vector{Event}()
+    matched_events = Vector{Event}()
     if order.is_bid
         while !isnan(book.best_ask) & (get_size(order) > 0)
-            append!(matched_orders, match_order!(book.asks[book.best_ask], order, time))
+            append!(matched_events, match_order!(book.asks[book.best_ask], order, time))
             if isempty(book.asks[book.best_ask])
                 delete!(book.asks, book.best_ask)
                 update_best_ask!(book)
@@ -114,14 +106,14 @@ function add_order!(book::Book, order::MarketOrder, time::Int64)
         end
     else
         while !isnan(book.best_bid) & (get_size(order) > 0)
-            append!(matched_orders, match_order!(book.bids[book.best_bid], order, time))
+            append!(matched_events, match_order!(book.bids[book.best_bid], order, time))
             if isempty(book.bids[book.best_bid])
                 delete!(book.bids, book.best_bid)
                 update_best_bid!(book)
             end
         end
     end
-    return matched_orders
+    return matched_events
 end
 
 
@@ -179,9 +171,9 @@ function place_order!(book_side::Dict{Float64, OrderedSet{LimitOrder}},
 end
 
 """
-    messages_from_match(matched_orders, book, params)
+    messages_from_match(matched_events, book, params)
 
-Create messages about "matched_orders" for both affected agents and reporting agents.
+Create messages about "matched_events" for both affected agents and reporting agents.
 """
 function messages_from_match(match_events::Vector{Event}, book::Book, simulation::Dict)
     msgs = Vector{Dict}()
@@ -201,11 +193,11 @@ function messages_from_match(match_events::Vector{Event}, book::Book, simulation
 end
 
 """
-    remove_matched_orders!(matched_orders, agents)
+    remove_matched_events!(matched_events, agents)
 
 Remove matched orders from "agents" orders.
 """
-function remove_matched_orders!(match_events::Vector{Event}, agents::Dict{Int64, Agent})
+function remove_matched_events!(match_events::Vector{Event}, agents::Dict{Int64, Agent})
     if !isempty(match_events)
         # check whether the last matching was not partial
         event = match_events[end]
