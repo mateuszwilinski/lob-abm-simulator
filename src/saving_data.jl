@@ -90,6 +90,24 @@ function save_order!(simulation::Dict, order::LimitOrder)
 end
 
 """
+    save_modify!(simulation, order, agent)
+
+Save a given order modification to the simulation structure.
+"""
+function save_modify!(simulation::Dict, order::LimitOrder)
+    push!(simulation["events"],
+          Event(
+            simulation["current_time"],
+            2,  # 2 for order size modification
+            order.id,
+            get_size(order),
+            order.price,
+            order.is_bid,
+            order.agent,
+            ))
+end
+
+"""
     save_cancel!(simulation, order)
 
 Save a given order cancellation to the simulation structure.
@@ -108,21 +126,14 @@ function save_cancel!(simulation::Dict, order::LimitOrder)
 end
 
 """
-    save_modify!(simulation, order, agent)
+    save_trades!(simulation, event)
 
-Save a given order modification to the simulation structure.
+Save a given list of events representing trades (executions).
 """
-function save_modify!(simulation::Dict, order::LimitOrder)
-    push!(simulation["events"],
-          Event(
-            simulation["current_time"],
-            2,  # 2 for order size modification
-            order.id,
-            get_size(order),
-            order.price,
-            order.is_bid,
-            order.agent,
-            ))
+function save_trades!(simulation::Dict, events::Vector{Event})
+    for event in events
+        push!(simulation["events"], event)
+    end
 end
 
 """
