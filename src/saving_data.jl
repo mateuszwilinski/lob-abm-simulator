@@ -4,7 +4,7 @@ using CSV
 # Custom struct for event data
 struct Event{T <: Int, F <: Float64}
     time::T
-    type::T
+    type::T  # 0 = market, 1 = limit, 2 = modification, 3 = cancellation, 4 = execution
     order_id::T
     size::T
     price::F

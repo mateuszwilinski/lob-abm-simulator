@@ -39,7 +39,7 @@ function parse_commandline()
             help = "save events?"
             action = :store_true
         "--snapshots", "-p"
-            help = "save snapshots?"
+            help = "save snapshots? (only with --save_events)"
             action = :store_true
         "--end_time", "-e"
             help = "simulation length"
@@ -207,6 +207,7 @@ function main()
         save_events_to_csv(simulation_outcome["events"], filename)
     end
     println(mid_price[1000:100:2000])
+    # println(mid_price)
 end
 
 main()
