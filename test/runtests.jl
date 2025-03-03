@@ -12,13 +12,11 @@ include("../src/changing_order.jl")
 
 # Create a new limit order book
 book = Book(
-    Dict{Float64, OrderedSet}(),
-    Dict{Float64, OrderedSet}(),
+    Dict{Float64, OrderedSet{LimitOrder}}(),
+    Dict{Float64, OrderedSet{LimitOrder}}(),
     NaN,
     NaN,
-    0,
     "ABC",
-    Vector{Trade}(),
     0.0
     )
 
