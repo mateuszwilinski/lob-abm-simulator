@@ -5,10 +5,14 @@
 Cancel order and save the cancellation if needed.
 """
 function cancel_order!(order::LimitOrder, book::Book, agent::Agent, simulation::Dict, parameters::Dict)
+    remove_order!(order.id, book, agent)
     if parameters["save_events"]
         save_cancel!(simulation, order)
+        if parameters["snapshots"]
+            snapshot = take_snapshot(book)
+            save_snapshot!(simulation, snapshot)
+        end
     end
-    remove_order!(order.id, book, agent)
 end
 
 """
@@ -27,16 +31,24 @@ function cancel_inconsistent_orders!(
 
     for (order_id, o) in agent.orders
         if o.is_bid != is_bid
+            remove_order!(order_id, book, agent)
             if parameters["save_events"]
                 save_cancel!(simulation, o)
+                if parameters["snapshots"]
+                    snapshot = take_snapshot(book)
+                    save_snapshot!(simulation, snapshot)
+                end
             end
-            remove_order!(order_id, book, agent)
         elseif (((o.price > expected_price) && o.is_bid) ||
                 ((o.price < expected_price) && !o.is_bid))
+            remove_order!(order_id, book, agent)
             if parameters["save_events"]
                 save_cancel!(simulation, o)
+                if parameters["snapshots"]
+                    snapshot = take_snapshot(book)
+                    save_snapshot!(simulation, snapshot)
+                end
             end
-            remove_order!(order_id, book, agent)
         end
     end
 end
@@ -49,10 +61,14 @@ Cancel orders inconsistent with "is_bid" direction.
 function cancel_inconsistent_orders!(agent::Agent, book::Book, is_bid::Bool, parameters::Dict, simulation::Dict)
     for (order_id, o) in agent.orders
         if o.is_bid != is_bid
+            remove_order!(order_id, book, agent)
             if parameters["save_events"]
                 save_cancel!(simulation, o)
+                if parameters["snapshots"]
+                    snapshot = take_snapshot(book)
+                    save_snapshot!(simulation, snapshot)
+                end
             end
-            remove_order!(order_id, book, agent)
         end
     end
 end
@@ -110,5 +126,9 @@ function modify_order!(
     order.size[] = new_size
     if parameters["save_events"]
         save_modify!(simulation, order)
+        if parameters["snapshots"]
+            snapshot = take_snapshot(book)
+            save_snapshot!(simulation, snapshot)
+        end
     end
 end

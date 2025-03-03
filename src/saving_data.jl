@@ -2,7 +2,7 @@
 using CSV
 
 # Custom struct for event data
-struct Event{T <: Int, F <: Float64}
+struct Event{T <: Integer, F <: Real}
     time::T
     type::T  # 0 = market, 1 = limit, 2 = modification, 3 = cancellation, 4 = execution
     order_id::T
@@ -14,6 +14,7 @@ struct Event{T <: Int, F <: Float64}
     cross_agent::T
 end
 
+# Construct Event for executions
 function Event(
     time::T,
     type::T,
@@ -24,8 +25,8 @@ function Event(
     agent_id::T,
     cross_order::T,
     cross_agent::T
-    ) where {T <: Int, F <: Float64}
-    direction = is_bid ? -1 : 1  # TODO: make sure it is correct (!!!)
+    ) where {T <: Integer, F <: Real}
+    direction = is_bid ? -1 : 1
     return Event(
         time,
         type,
@@ -48,7 +49,7 @@ function Event(
     price::F,
     is_bid::Bool,
     agent_id::T
-    ) where {T <: Int, F <: Float64}
+    ) where {T <: Int, F <: Real}
     direction = is_bid ? -1 : 1
     return Event(time, type, order_id, size, price, direction, agent_id, -1, -1)
 end
@@ -66,7 +67,7 @@ function save_order!(simulation::Dict, order::MarketOrder)
             order.id,
             get_size(order),
             NaN,
-            order.is_bid,  # TODO: change this to -1 for buy, 1 for sell
+            order.is_bid,
             order.agent
             ))
 end
@@ -126,14 +127,12 @@ function save_cancel!(simulation::Dict, order::LimitOrder)
 end
 
 """
-    save_trades!(simulation, event)
+    save_snapshot!(simulation, snapshot)
 
-Save a given list of events representing trades (executions).
+Save a given snapshot to the simulation structure.
 """
-function save_trades!(simulation::Dict, events::Vector{Event})
-    for event in events
-        push!(simulation["events"], event)
-    end
+function save_snapshot!(simulation::Dict, snapshot::Snapshot)
+    push!(simulation["snapshots"], snapshot)
 end
 
 """
@@ -156,6 +155,33 @@ function save_events_to_csv(events::Vector{Event}, filename::String)
                 "$(event.cross_order),",
                 "$(event.cross_agent)"
             ))
+        end
+    end
+end
+
+"""
+    save_snapshots_to_csv(snapshots, filename)
+
+Save snapshots to a CSV file.
+"""
+function save_snapshots_to_csv(snapshots::Vector{Snapshot}, filename::String)
+    open(filename, "w") do io
+        # Write each order directly
+        for s in snapshots
+            snapshot_strings = String[]
+            for i in 1:5
+                push!(
+                    snapshot_strings,
+                    string(
+                        "$(s.ask_prices[i]),",
+                        "$(s.ask_volumes[i]),",
+                        "$(s.bid_prices[i]),",
+                        "$(s.bid_volumes[i])",
+                        i == 5 ? "" : ","  # Add comma if not the last element
+                        )
+                    )
+            end
+            println(io, snapshot_strings...)
         end
     end
 end

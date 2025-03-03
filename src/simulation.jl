@@ -32,7 +32,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
                         messages::PriorityQueue, params::Dict)
     # initiate simulation state dictionary
     simulation = Dict()
-    simulation["mid_price"] = fill(NaN, params["end_time"])  # TODO: maybe NaNs instead of zeros (???)
+    simulation["mid_price"] = fill(NaN, params["end_time"])
     simulation["current_time"] = params["initial_time"]
     simulation["last_id"] = params["first_id"]
     if params["save_events"]
@@ -54,7 +54,7 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         msg = dequeue!(messages)
         
         # check time and update simulation state if needed
-        if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results at end_time
+        if msg["activation_time"] > simulation["current_time"]
             # check if the simulation should end already
             if msg["activation_time"] > params["end_time"]
                 fill_mid_price!(simulation, params["end_time"], book)

@@ -7,11 +7,11 @@ import Random
 
 include("../src/orders.jl")
 include("../src/books.jl")
+include("../src/market_state.jl")
 include("../src/agents.jl")
 include("../src/saving_data.jl")
 include("../src/handling_order.jl")
 include("../src/changing_order.jl")
-include("../src/market_state.jl")
 include("../src/simulation.jl")
 include("configs/simple_abm_params.jl")
 
@@ -127,8 +127,11 @@ function main()
     params["snapshots"] = args["snapshots"]
     params["save_events"] = args["save_events"]
     params["tick_size"] = args["tick_size"]
+    if params["snapshots"] & !params["save_events"]
+        throw(ArgumentError("Snapshots can be saved only with events."))
+    end
 
-    params["initial_time"] = 1  # TODO: Initial time cannot be zero or negative.
+    params["initial_time"] = 1  # Initial time cannot be zero or negative.
     params["fundamental_price"] = 100.0
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
     params["fundamental_dynamics"][Int(params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
@@ -167,8 +170,8 @@ function main()
 
     # Initiate order book
     book = Book(
-        Dict{Float64, OrderedSet}(),
-        Dict{Float64, OrderedSet}(),
+        Dict{Float64, OrderedSet{LimitOrder}}(),
+        Dict{Float64, OrderedSet{LimitOrder}}(),
         NaN,
         NaN,
         "ABC",
@@ -194,13 +197,8 @@ function main()
     end
     writedlm(string("../results/mid_price_", seed, "_", experiment, ".csv"), mid_price, ";")
     if params["snapshots"]
-        snapshots = zeros(0, 3)
-        for (t, v) in simulation_outcome["snapshots"]
-            for i in 1:size(v)[1]
-                snapshots = vcat(snapshots, [t v[i, 1] v[i, 2]])
-            end
-        end
-        writedlm(string("../results/snapshots_", seed, "_", experiment, ".csv"), snapshots, ";")
+        filename = string("../results/snapshots_", seed, "_", experiment, ".csv")
+        save_snapshots_to_csv(simulation_outcome["snapshots"], filename)
     end
     if params["save_events"]
         filename = string("../results/events_", seed, "_", experiment, ".csv")
