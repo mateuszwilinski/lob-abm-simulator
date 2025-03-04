@@ -2,6 +2,28 @@
 import Distributions: Exponential
 
 """
+    MarketMaker(id, rate, K, q, size)
+
+Create a Market Maker agent with given parameters and an empty dictionary of orders.
+"""
+function MarketMaker(
+    id::T,
+    rate::F,
+    K::T,
+    q::F,
+    size::T
+    ) where {T <: Integer, F <: Real}
+    return MarketMaker(
+        id,
+        Dict{Integer, LimitOrder}(),
+        rate,
+        K,
+        q,
+        size
+        )
+end
+
+"""
     initiate!(agent, book, params)
 
 Initiate MarketMaker "agent" on the "book", for simulation with "params".
@@ -35,8 +57,8 @@ function action!(agent::MarketMaker, book::Book, agents::Dict{Int64, Agent},
     if msg["action"] == "LADDER_ORDERS"
         # cancel previous ladder
         if !isempty(agent.orders)
-            for order_id in keys(agent.orders)
-                cancel_order!(order_id, book, agent, simulation, params)
+            for o in values(agent.orders)
+                cancel_order!(o, book, agent, simulation, params)
             end
         end
 

@@ -1,162 +1,288 @@
 
-"""
-    pass_order!(book, order, agents, simulation, parameters)
+import Base.Iterators: take
 
-Passes an "order" (limit order) to the "book" and save it if necessary.
+"""
+    pass_order!(book, order, agents, sim, params)
+
+Passes an "order" to the "book" and save it if necessary.
 Returns messages to be sent to affected agents.
 """
-function pass_order!(book::Book, order::LimitOrder, agents::Dict{Int64, Agent}, simulation::Dict, parameters::Dict)
-    # save order if requested
-    if parameters["save_events"]
-        save_order!(simulation, order)
-    end
+function pass_order!(book::Book, order::Order, agents::Dict{Int64, Agent}, sim::Dict, params::Dict)
     # add order to the book and get matched orders
-    matched_orders = add_order!(book, order)
+    msgs = add_order!(book, order, sim, params)
 
     # remove the matched orders from the agent's orders
-    remove_matched_orders!(matched_orders, agents)
+    remove_matched_orders!(msgs, agents)
 
-    # save trades
-    add_trades!(book, matched_orders)
-
-    # add the remaining order to the agent's orders
+    # decide what to do with the remaining order
     if get_size(order) > 0
-        agents[order.agent].orders[order.id] = order
+        remaining_order!(order, agents[order.agent], book)
     end
 
-    # create messages for affected agents
-    msgs = messages_from_match(matched_orders, book)
-
-    return msgs
-end
-
-"""
-    pass_order!(book, order, agents, simulation, parameters)
-
-Passes an "order" (market order) to the "book" and save it if necessary.
-Returns messages to be sent to affected agents.
-"""
-function pass_order!(book::Book, order::MarketOrder, agents::Dict{Int64, Agent}, simulation::Dict, parameters::Dict)
     # save order if requested
-    if parameters["save_events"]
-        save_order!(simulation, order)
+    if params["save_events"]
+        save_order!(sim, order)
+        if params["snapshots"]
+            snapshot = take_snapshot(book)
+            save_snapshot!(sim, snapshot)
+        end
     end
-    # add order to the book and get matched orders
-    matched_orders = add_order!(book, order)
-
-    # remove the matched orders from the agent's orders
-    remove_matched_orders!(matched_orders, agents)
-
-    # save trades
-    add_trades!(book, matched_orders)
-
-    # create messages for affected agents
-    msgs = messages_from_match(matched_orders, book)
-
+    
     return msgs
 end
 
 """
-    add_order!(book, order)
+    remaining_order!(order, agent)
 
-Adds "order" (limit order) to the "book" and returns the matched orders.
+Add remaining limit "order" to the "agent" orders.
 """
-function add_order!(book::Book, order::LimitOrder)
-    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64, Int64}}()
+function remaining_order!(order::LimitOrder, agent::Agent, book::Book)
     if order.is_bid
-        while (order.price >= book.best_ask) & (get_size(order) > 0)
-            append!(matched_orders, match_order!(book.asks[book.best_ask], order))
-            if isempty(book.asks[book.best_ask])
-                delete!(book.asks, book.best_ask)
-                update_best_ask!(book)
-            end
-        end
-        if get_size(order) > 0
-            place_order!(book.bids, order)
-            if !(order.price <= book.best_bid)  # This form is in case of best_bid==NaN
-                update_best_bid!(book)
-            end
+        place_order!(book.bids, order)
+        if !(order.price <= book.best_bid)  # This form is in case of best_bid==NaN
+            update_best_bid!(book)
         end
     else
-        while (order.price <= book.best_bid) & (get_size(order) > 0)
-            append!(matched_orders, match_order!(book.bids[book.best_bid], order))
-            if isempty(book.bids[book.best_bid])
-                delete!(book.bids, book.best_bid)
-                update_best_bid!(book)
-            end
-        end
-        if get_size(order) > 0
-            place_order!(book.asks, order)
-            if !(order.price >= book.best_ask)  # This form is in case of best_bid==NaN
-                update_best_ask!(book)
-            end
+        place_order!(book.asks, order)
+        if !(order.price >= book.best_ask)  # This form is in case of best_bid==NaN
+            update_best_ask!(book)
         end
     end
-    return matched_orders
+    agent.orders[order.id] = order
 end
 
 """
-    add_order!(book, order)
+    remaining_order!(order, agent)
 
-Adds "order" (market order) to the "book".
+Placeholder for potential actions regarding remaining market order.
 """
-function add_order!(book::Book, order::MarketOrder)
-    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64, Int64}}()
-    if order.is_bid
-        while !isnan(book.best_ask) & (get_size(order) > 0)
-            append!(matched_orders, match_order!(book.asks[book.best_ask], order))
-            if isempty(book.asks[book.best_ask])
-                delete!(book.asks, book.best_ask)
-                update_best_ask!(book)
-            end
-        end
-    else
-        while !isnan(book.best_bid) & (get_size(order) > 0)
-            append!(matched_orders, match_order!(book.bids[book.best_bid], order))
-            if isempty(book.bids[book.best_bid])
-                delete!(book.bids, book.best_bid)
-                update_best_bid!(book)
-            end
-        end
-    end
-    return matched_orders
+function remaining_order!(order::MarketOrder, agent::Agent, book::Book)
+    nothing
 end
 
+"""
+    add_order!(book, order, sim, params)
+
+Adds (limit) "order" to the "book" and returns the matched orders.
+"""
+function add_order!(book::Book, order::Order, sim::Dict, params::Dict)
+    msgs = Vector{Dict}()
+    if order.is_bid
+        while is_buy_volume_available(book, order)
+            append!(msgs, match_order!(
+                                book.asks[book.best_ask],
+                                book.asks,
+                                book,
+                                update_best_ask!,
+                                order,
+                                sim,
+                                params
+                                ))
+        end
+    else
+        while is_sell_volume_available(book, order)
+            append!(msgs, match_order!(
+                                book.bids[book.best_bid],
+                                book.bids,
+                                book,
+                                update_best_bid!,
+                                order,
+                                sim,
+                                params
+                                ))
+        end
+    end
+    return msgs
+end
 
 """
-    match_order!(book_level, order)
+    is_buy_volume_available(book, order)
 
-Matches "order" (market or limit) to a specific
-"book_level" in a "book". Note that at this point
-there are no checks whether the level is on the
-correct side and has the correct price.
+Check whether there is enough volume at the best price to buy in
+the book and if the limit order is not fulfilled already.
 """
-function match_order!(book_level::OrderedSet{LimitOrder},
-                      order::Order)
-    matched_orders = Vector{Tuple{Int64, Int64, Int64, Int64, Int64, Float64, Int64}}()
-    for o in book_level
-        if o.size[] == order.size[]
-            push!(matched_orders, (o.agent, o.id, order.agent, order.id,
-                                   get_size(o), o.price, 0))
+function is_buy_volume_available(book::Book, order::LimitOrder)
+    return (order.price >= book.best_ask) & (get_size(order) > 0)
+end
+
+"""
+    is_buy_volume_available(book, order)
+
+Check whether there is enough volume at the best price to buy in
+the book and if the market order is not fulfilled already.
+"""
+function is_buy_volume_available(book::Book, order::MarketOrder)
+    return !isnan(book.best_ask) & (get_size(order) > 0)
+end
+
+"""
+    is_sell_volume_available(book, order)
+
+Check whether there is enough volume at the best price to sell in
+the book and if the limit order is not fulfilled already.
+"""
+function is_sell_volume_available(book::Book, order::LimitOrder)
+    return (order.price <= book.best_bid) & (get_size(order) > 0)
+end
+
+"""
+    is_sell_volume_available(book, order)
+
+Check whether there is enough volume at the best price to sell in
+the book and if the market order is not fulfilled already.
+"""
+function is_sell_volume_available(book::Book, order::MarketOrder)
+    return !isnan(book.best_bid) & (get_size(order) > 0)
+end
+
+"""
+    match_order!(book_level, book_side, book, update_side, order, sim, params)
+
+Matches "order" (market or limit) to a specific "book_level",
+on a "book.side" in the "book". Note that at this point there are
+no checks whether the level is on the correct side and has
+the correct price.
+"""
+function match_order!(
+                book_level::OrderedSet{LimitOrder},
+                book_side::Dict{Float64, OrderedSet{LimitOrder}},
+                book::Book,
+                update_side::Function,
+                order::Order,
+                sim::Dict,
+                params::Dict
+                )
+    time = sim["current_time"]
+    msgs = Vector{Dict}()
+    for o in take(book_level, length(book_level)-1)
+        if get_size(o) == get_size(order)
+            execution_size = get_size(order)
             o.size[] = 0
             delete!(book_level, o)
             order.size[] = 0
-            break
-        elseif o.size[] > order.size[]
-            o.size[] -= order.size[]
-            push!(matched_orders, (o.agent, o.id, order.agent, order.id,
-                                   get_size(order), o.price, get_size(o)))
+
+            msg = process_execution_information!(
+                                            execution_size,
+                                            order,
+                                            o,
+                                            book,
+                                            sim,
+                                            params
+                                            )
+            push!(msgs, msg)
+            return msgs
+        elseif get_size(o) > get_size(order)
+            execution_size = get_size(order)
+            o.size[] -= get_size(order)
             order.size[] = 0
-            break
+
+            msg = process_execution_information!(
+                                            execution_size,
+                                            order,
+                                            o,
+                                            book,
+                                            sim,
+                                            params
+                                            )
+            push!(msgs, msg)
+            return msgs
         else
-            push!(matched_orders, (o.agent, o.id, order.agent, order.id,
-                                   get_size(o), o.price, 0))
-            order.size[] -= o.size[]
+            execution_size = get_size(o)
+            order.size[] -= get_size(o)
             o.size[] = 0
             delete!(book_level, o)
+
+            msg = process_execution_information!(
+                                            execution_size,
+                                            order,
+                                            o,
+                                            book,
+                                            sim,
+                                            params
+                                            )
+            push!(msgs, msg)
         end
     end
-    return matched_orders
+    # we still need to deal with the last order
+    last_order = last(book_level)
+    if get_size(last_order) > get_size(order)
+        execution_size = get_size(order)
+        last_order.size[] -= get_size(order)
+        order.size[] = 0
+
+        msg = process_execution_information!(
+            execution_size,
+            order,
+            last_order,
+            book,
+            sim,
+            params
+            )
+        push!(msgs, msg)
+    else
+        execution_size = get_size(last_order)
+        order.size[] -= get_size(last_order)
+        last_order.size[] = 0
+        delete!(book_side, last_order.price)
+        update_side(book)
+
+        msg = process_execution_information!(
+            execution_size,
+            order,
+            last_order,
+            book,
+            sim,
+            params
+            )
+        push!(msgs, msg)
+    end
+    return msgs
+end
+
+"""
+    process_execution_information!(execution_size, agressive, passive, book, sim, params)
+
+Process information about the execution of "execution_size" of "agressive" order
+against "passive" order in the "book". Save the event if requested.
+"""
+function process_execution_information!(
+                            execution_size::Int64,
+                            agressive::Order,
+                            passive::LimitOrder,
+                            book::Book,
+                            sim::Dict,
+                            params::Dict
+                            )
+    #create message for affected agent
+    msg = Dict{String, Union{String, Int64, Float64, Bool}}()
+    msg["recipient"] = passive.agent
+    msg["book"] = book.symbol
+    msg["activation_time"] = sim["current_time"]
+    msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
+    msg["action"] = "UPDATE_ORDER"
+    msg["order_id"] = passive.id
+    msg["order_size"] = get_size(passive)
+
+    # save event if requested
+    if params["save_events"]
+        event = Event(
+            sim["current_time"],
+            4,
+            passive.id,
+            execution_size,
+            passive.price,
+            passive.is_bid,
+            passive.agent,
+            agressive.id,
+            agressive.agent
+            )
+        push!(sim["events"], event)
+        if params["snapshots"]
+            snapshot = take_snapshot(book)
+            save_snapshot!(sim, snapshot)
+        end
+    end
+    return msg
 end
 
 """
@@ -175,64 +301,20 @@ function place_order!(book_side::Dict{Float64, OrderedSet{LimitOrder}},
 end
 
 """
-    add_trades!(book, matched_orders)
+    remove_matched_orders!(msgs, agents)
 
-Adds trades to the book.
+Remove matched orders from "agents" orders.
 """
-function add_trades!(book::Book,
-                      matched_orders::Vector{Tuple{Int64, Int64, Int64,
-                                                   Int64, Int64, Float64, Int64}})
-    for (matched_agent, matched_order, active_agent,
-         active_order, size, price,) in matched_orders
-        push!(book.trades, Trade(price, size, active_order, matched_order,
-                                 active_agent, matched_agent))
-    end
-end
-
-"""
-    messages_from_match(matched_orders, book, params)
-
-Create messages about "matched_orders" for both affected agents and reporting agents.
-"""
-function messages_from_match(matched_orders::Vector{Tuple{Int64, Int64,
-                                                          Int64, Int64,
-                                                          Int64, Float64,
-                                                          Int64}},
-                             book::Book)
-    msgs = Vector{Dict}()
-    for (matched_agent, matched_order, active_agent, active_order,
-         trade_size, price, order_size) in matched_orders
-        # send message to affected agent
-        msg = Dict{String, Union{String, Int64, Float64, Bool}}()
-        msg["recipient"] = matched_agent
-        msg["book"] = book.symbol
-        msg["activation_time"] = book.time
-        msg["activation_priority"] = 0  # TODO: think through how this priority should work(!!!)
-        msg["action"] = "UPDATE_ORDER"
-        msg["order_id"] = matched_order
-        msg["order_size"] = order_size  # TODO: traded size should also proabably be passed
-        push!(msgs, msg)
-    end
-    return msgs
-end
-
-"""
-    remove_matched_orders!(matched_orders, agents)
-
-Remove "matched_orders" from "agents" orders.
-"""
-function remove_matched_orders!(matched_orders::Vector{Tuple{Int64, Int64, Int64,
-                                                             Int64, Int64, Float64, Int64}},
-                                agents::Dict{Int64, Agent})
-    if !isempty(matched_orders)
+function remove_matched_orders!(msgs::Vector{Dict}, agents::Dict{Int64, Agent})
+    if !isempty(msgs)
         # check whether the last matching was not partial
-        (agent_id, order_id,) = matched_orders[end]
-        if get_size(agents[agent_id].orders[order_id]) == 0
-            delete!(agents[agent_id].orders, order_id)
+        msg = msgs[end]
+        if get_size(agents[msg["recipient"]].orders[msg["order_id"]]) == 0
+            delete!(agents[msg["recipient"]].orders, msg["order_id"])
         end
         # remove all other orders
-        for (agent_id, order_id,) in matched_orders[1:(end-1)]
-            delete!(agents[agent_id].orders, order_id)
+        for msg in msgs[1:(end-1)]
+            delete!(agents[msg["recipient"]].orders, msg["order_id"])
         end
     end
 end

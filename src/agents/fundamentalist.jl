@@ -2,6 +2,34 @@
 import Distributions: Exponential
 
 """
+    Fundamentalist(id, limit_rate, market_rate, coeff, sigma, horizon, size, size_sigma)
+
+Create a Fundamentalist agent with given parameters and an empty dictionary of orders.
+"""
+function Fundamentalist(
+    id::T,
+    limit_rate::F,
+    market_rate::F,
+    coeff::F,
+    sigma::F,
+    horizon::T,
+    size::T,
+    size_sigma::F
+    ) where {T <: Integer, F <: Real}
+    return Fundamentalist(
+        id,
+        Dict{Integer, LimitOrder}(),
+        limit_rate,
+        market_rate,
+        coeff,
+        sigma,
+        horizon,
+        size,
+        size_sigma
+        )
+end
+ 
+"""
     initiate!(agent, book, params)
 
 Initiate NoiseTrader "agent" on the "book", for simulation with "params".
@@ -101,7 +129,7 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
             # match new market order
             matching_msgs = pass_order!(book, order, agents, simulation, params)
             append!(msgs, matching_msgs)
-        end  # TODO: should we cancel inconsistent limit orders in this case?
+        end
 
         # agent sends next order message
         activation_time_diff = ceil(Int64, rand(Exponential(agent.market_rate)))
@@ -111,7 +139,8 @@ function action!(agent::Fundamentalist, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         order_id = msg["order_id"]
         if order_id in keys(agent.orders)
-            cancel_order!(order_id, book, agent, simulation, params)
+            order = agent.orders[order_id]
+            cancel_order!(order, book, agent, simulation, params)
         end
     elseif msg["action"] == "UPDATE_ORDER"
         nothing

@@ -1,15 +1,13 @@
 
 import DataStructures: OrderedSet
 
-mutable struct Book
-    bids::Dict{Float64, OrderedSet{LimitOrder}}
-    asks::Dict{Float64, OrderedSet{LimitOrder}}
-    best_bid::Float64
-    best_ask::Float64
-    time::Int64
+mutable struct Book{T <: Real}
+    bids::Dict{T, OrderedSet{LimitOrder}}
+    asks::Dict{T, OrderedSet{LimitOrder}}
+    best_bid::T
+    best_ask::T
     symbol::String
-    trades::Vector{Trade}
-    tick_size::Float64
+    tick_size::T
 end
 
 """

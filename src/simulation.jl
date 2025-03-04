@@ -14,19 +14,12 @@ function add_new_msgs!(messages::PriorityQueue, new_msgs::Vector{Dict})
 end
 
 """
-    update_mid_price!(simulation, previous_time, current_time, book)
+    update_mid_price!(simulation, new_time, book)
 
 Update the mid price state in the simulation state dictionary.
 """
-function update_mid_price!(simulation::Dict, previous_time::Int64, new_time::Int64, book::Book)
-    # TODO: This part is very confusing. Needs a clear update!
-    simulation["mid_price"][previous_time:(simulation["current_time"]-1)] .=
-                                                simulation["mid_price"][previous_time]
-    if new_time >= size(simulation["mid_price"])[1]
-        simulation["mid_price"][simulation["current_time"]:end] .= mid_price(book)
-    else
-        simulation["mid_price"][simulation["current_time"]:(new_time-1)] .= mid_price(book)
-    end
+function fill_mid_price!(simulation::Dict, new_time::Int64, book::Book)
+    simulation["mid_price"][simulation["current_time"]:new_time] .= mid_price(book)
 end
 
 """
@@ -35,18 +28,19 @@ end
 Run simulation with "params" over the "book" with given "agents"
 and initial messages up until "end_time".
 """
-function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potentially Dict{String, Book} in the future
+function run_simulation(agents::Dict{Int64, Agent}, book::Book,
                         messages::PriorityQueue, params::Dict)
     # initiate simulation state dictionary
     simulation = Dict()
-    simulation["mid_price"] = zeros(params["end_time"])
-    simulation["snapshots"] = Dict{Int64, Matrix}()
-    simulation["trades"] = zeros(Union{Int64, Float64}, 0, 7)
-    simulation["orders"] = Set{Vector}()
-    simulation["cancellations"] = Set{Vector}()
+    simulation["mid_price"] = fill(NaN, params["end_time"])
     simulation["current_time"] = params["initial_time"]
     simulation["last_id"] = params["first_id"]
-    previous_time = params["initial_time"]
+    if params["save_events"]
+        simulation["events"] = Vector{Event}()
+        if params["snapshots"]
+            simulation["snapshots"] = Vector{Snapshot}()
+        end
+    end
 
     # initiate agents
     for (_, agent) in agents
@@ -54,27 +48,22 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         add_new_msgs!(messages, new_msgs)
     end
 
-    # initial tests  # TODO: more tests to add
-    if params["initial_time"] != book.time
-        throw(error("Book time and initial time inconsistent."))
-    end
-
     # start simulation
     while !isempty(messages) & (simulation["current_time"] < params["end_time"])
+        # get the next message
         msg = dequeue!(messages)
-
+        
         # check time and update simulation state if needed
-        if msg["activation_time"] > simulation["current_time"]  # TODO: note that this will not save the results for end_time and initial_time
-            update_mid_price!(simulation, previous_time, msg["activation_time"], book)
-            if params["snapshots"]
-                simulation["snapshots"][simulation["current_time"]] = market_depth(book)
+        if msg["activation_time"] > simulation["current_time"]
+            # check if the simulation should end already
+            if msg["activation_time"] > params["end_time"]
+                fill_mid_price!(simulation, params["end_time"], book)
+                simulation["current_time"] = params["end_time"]
+                break
             end
-            simulation["trades"] = vcat(simulation["trades"], market_trades(book))
-
-            previous_time = simulation["current_time"]
+            # update mid price and current time
+            fill_mid_price!(simulation, msg["activation_time"]-1, book)
             simulation["current_time"] = msg["activation_time"]
-            book.time = simulation["current_time"]
-            empty!(book.trades)
         elseif msg["activation_time"] < simulation["current_time"]
             throw(error("Message activation time is in the past."))
         end
@@ -84,5 +73,8 @@ function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potenti
         new_msgs = action!(agent, book, agents, params, simulation, msg)
         add_new_msgs!(messages, new_msgs)
     end
+    # make sure that the last message is included
+    fill_mid_price!(simulation, params["end_time"], book)
+    
     return simulation
 end

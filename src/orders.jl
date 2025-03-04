@@ -47,15 +47,6 @@ function LimitOrder(
     return LimitOrder(price, Ref(size), is_bid, id, agent, symbol)
 end
 
-struct Trade{T <: Integer, F <: Real}  # TODO: consider changing it to execution
-    price::F
-    size::T
-    active_order::T
-    passive_order::T
-    active_agent::T
-    passive_agent::T
-end
-
 """
     get_size(o)
 

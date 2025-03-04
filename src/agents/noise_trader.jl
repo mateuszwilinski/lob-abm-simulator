@@ -2,6 +2,32 @@
 import Distributions: Exponential
 
 """
+    NoiseTrader(id, limit_rate, market_rate, cancel_rate, sigma, size, size_sigma)
+
+Create a Noise Trader agent with given parameters and an empty dictionary of orders.
+"""
+function NoiseTrader(
+    id::T,
+    limit_rate::F,
+    market_rate::F,
+    cancel_rate::F,
+    sigma::F,
+    size::T,
+    size_sigma::F
+    ) where {T <: Integer, F <: Real}
+    return NoiseTrader(
+        id,
+        Dict{Integer, LimitOrder}(),
+        limit_rate,
+        market_rate,
+        cancel_rate,
+        sigma,
+        size,
+        size_sigma
+        )
+end
+
+"""
     initiate!(agent, book, params)
 
 Initiate NoiseTrader "agent" on the "book", for simulation with "params".
@@ -38,7 +64,7 @@ end
 Activate an agent, trade or cancel an existing trade and send a new message.
 """
 function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
-                 params::Dict, simulation::Dict, msg::Dict)  # TODO: agents are useless for noise traders, but might be useful for other traders.
+                 params::Dict, simulation::Dict, msg::Dict)
     # initialise new messages
     msgs = Vector{Dict}()
     
@@ -68,7 +94,8 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
             order_id = rand(keys(agent.orders))
-            cancel_order!(order_id, book, agent, simulation, params)
+            order = agent.orders[order_id]
+            cancel_order!(order, book, agent, simulation, params)
         end
 
         rate = agent.cancel_rate

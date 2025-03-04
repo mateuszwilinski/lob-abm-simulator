@@ -2,6 +2,32 @@
 import Distributions: Exponential
 
 """
+    MarketTaker(id, rate, exit_time, time_sigma, size, chunk, chunk_sigma)
+
+Create a Market Taker agent with given parameters and an empty dictionary of orders.
+"""
+function MarketTaker(
+    id::T,
+    rate::F,
+    exit_time::T,
+    time_sigma::F,
+    size::T,
+    chunk::T,
+    chunk_sigma::F
+    ) where {T <: Integer, F <: Real}
+    return MarketTaker(
+        id,
+        Dict{Integer, LimitOrder}(),
+        rate,
+        exit_time,
+        time_sigma,
+        size,
+        chunk,
+        chunk_sigma
+        )
+end
+
+"""
     initiate!(agent, book, params)
 
 Initiate MarketTaker "agent" on the "book", for simulation with "params".
@@ -28,7 +54,7 @@ end
 Activate an agent, trade or cancel an existing trade and send a new message.
 """
 function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
-                 params::Dict, simulation::Dict, msg::Dict)  # TODO: params are useless here, but are useful for other agents and consistency.
+                 params::Dict, simulation::Dict, msg::Dict)
     # initialise new messages
     msgs = Vector{Dict}()
     
@@ -61,12 +87,23 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
         matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
     else
-        throw(error("Unknown action for a Market Taker."))  # TODO: Maybe we should add the specific action here?
+        throw(error("Unknown action for a Market Taker."))
     end
     return msgs
 end
 
-function create_next_chunk_msgs(agent_id::T, symbol::String, is_bid::Bool, chunk_activation_time::T, chunk_size::T) where {T <: Integer}
+"""
+    create_next_chunk_msgs(agent_id, symbol, is_bid, chunk_activation_time, chunk_size)
+
+Create a message for the next chunk of a big order.
+"""
+function create_next_chunk_msgs(
+                        agent_id::T,
+                        symbol::String,
+                        is_bid::Bool,
+                        chunk_activation_time::T,
+                        chunk_size::T
+                        ) where {T <: Integer}
     msg = Dict{String, Union{String, Int64, Float64, Bool}}()
     msg["recipient"] = agent_id
     msg["book"] = symbol

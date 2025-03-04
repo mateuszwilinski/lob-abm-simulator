@@ -7,21 +7,33 @@ include("../src/agents.jl")
 include("../src/agents/market_taker.jl")
 include("../src/handling_order.jl")
 include("../src/changing_order.jl")
+include("../src/market_state.jl")
+include("../src/saving_data.jl")
 
+#
 # Data and setting
+#
+
+# Set parameters and simulation settings
+parameters = Dict()
+parameters["tick_size"] = 0.5
+parameters["save_events"] = false
+simulation = Dict()
+simulation["events"] = Vector{Event}()
+simulation["current_time"] = 1
+simulation["last_id"] = 9
 
 # Create a new limit order book
 book = Book(
-    Dict{Float64, OrderedSet}(),
-    Dict{Float64, OrderedSet}(),
+    Dict{Float64, OrderedSet{LimitOrder}}(),
+    Dict{Float64, OrderedSet{LimitOrder}}(),
     NaN,
     NaN,
-    0,
     "ABC",
-    Vector{Trade}(),
-    0.0
+    parameters["tick_size"]
     )
 
+# Add simple Agents
 agents = Dict{Int64, Agent}()
 for i in 1:6
     agents[i] = Trader(
@@ -54,26 +66,20 @@ book.asks = asks
 update_best_bid!(book)
 update_best_ask!(book)
 
-# create an incoming orders
+# create incoming orders
 limit_order = LimitOrder(9.0, 400, false, 7, 2, "ABC")
 market_order = MarketOrder(200, true, 8, 6, "ABC")
 
-matched_orders = add_order!(book, limit_order)
-if get_size(limit_order) > 0
-    agents[limit_order.agent].orders[limit_order.id] = limit_order
-end
-remove_matched_orders!(matched_orders, agents)
+match_msgs = pass_order!(book, limit_order, agents, simulation, parameters)
 
-# create market taker
-
+# create a market taker
 agent = MarketTaker(7, 3.4, 3, 0.0, 10, 2, 0.0)
-simulation = Dict{String, Int64}()
-simulation["last_id"] = 9
-params = Dict{String, Int64}()
+agents[7] = agent
+
 msg = Dict{String, Union{String, Int64, Float64, Bool}}()
 msg["activation_time"] = 1
 msg["action"] = "BIG_ORDER"
-msgs = action!(agent, book, agents, params, simulation, msg)
+msgs = action!(agent, book, agents, parameters, simulation, msg)
 
 #
 # LOB Tests
@@ -104,8 +110,8 @@ msgs = action!(agent, book, agents, params, simulation, msg)
         end
     end
 
-    matched_orders = add_order!(book, market_order)
-    remove_matched_orders!(matched_orders, agents)
+    match_msgs = add_order!(book, market_order, simulation, parameters)
+    remove_matched_orders!(match_msgs, agents)
 
     @testset "market order" begin
         @test isnan(book.best_bid)
