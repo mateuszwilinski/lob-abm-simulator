@@ -28,7 +28,7 @@ end
 Run simulation with "params" over the "book" with given "agents"
 and initial messages up until "end_time".
 """
-function run_simulation(agents::Dict{Int64, Agent}, book::Book,  # TODO: potentially Dict{String, Book} in the future
+function run_simulation(agents::Dict{Int64, Agent}, book::Book,
                         messages::PriorityQueue, params::Dict)
     # initiate simulation state dictionary
     simulation = Dict()
