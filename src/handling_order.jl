@@ -159,12 +159,13 @@ function match_order!(
     msgs = Vector{Dict}()
     for o in take(book_level, length(book_level)-1)
         if get_size(o) == get_size(order)
+            execution_size = get_size(order)
             o.size[] = 0
             delete!(book_level, o)
             order.size[] = 0
 
             msg = process_execution_information!(
-                                            get_size(order),
+                                            execution_size,
                                             order,
                                             o,
                                             book,
@@ -174,11 +175,12 @@ function match_order!(
             push!(msgs, msg)
             return msgs
         elseif get_size(o) > get_size(order)
+            execution_size = get_size(order)
             o.size[] -= get_size(order)
             order.size[] = 0
 
             msg = process_execution_information!(
-                                            get_size(order),
+                                            execution_size,
                                             order,
                                             o,
                                             book,
@@ -188,12 +190,13 @@ function match_order!(
             push!(msgs, msg)
             return msgs
         else
+            execution_size = get_size(o)
             order.size[] -= get_size(o)
             o.size[] = 0
             delete!(book_level, o)
 
             msg = process_execution_information!(
-                                            get_size(order),
+                                            execution_size,
                                             order,
                                             o,
                                             book,
@@ -206,11 +209,12 @@ function match_order!(
     # we still need to deal with the last order
     last_order = last(book_level)
     if get_size(last_order) > get_size(order)
+        execution_size = get_size(order)
         last_order.size[] -= get_size(order)
         order.size[] = 0
 
         msg = process_execution_information!(
-            get_size(order),
+            execution_size,
             order,
             last_order,
             book,
@@ -219,13 +223,14 @@ function match_order!(
             )
         push!(msgs, msg)
     else
+        execution_size = get_size(last_order)
         order.size[] -= get_size(last_order)
         last_order.size[] = 0
         delete!(book_side, last_order.price)
         update_side(book)
 
         msg = process_execution_information!(
-            get_size(order),
+            execution_size,
             order,
             last_order,
             book,
