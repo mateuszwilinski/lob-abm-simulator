@@ -66,7 +66,18 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
     return msgs
 end
 
-function create_next_chunk_msgs(agent_id::T, symbol::String, is_bid::Bool, chunk_activation_time::T, chunk_size::T) where {T <: Integer}
+"""
+    create_next_chunk_msgs(agent_id, symbol, is_bid, chunk_activation_time, chunk_size)
+
+Create a message for the next chunk of a big order.
+"""
+function create_next_chunk_msgs(
+                        agent_id::T,
+                        symbol::String,
+                        is_bid::Bool,
+                        chunk_activation_time::T,
+                        chunk_size::T
+                        ) where {T <: Integer}
     msg = Dict{String, Union{String, Int64, Float64, Bool}}()
     msg["recipient"] = agent_id
     msg["book"] = symbol
