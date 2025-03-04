@@ -2,6 +2,34 @@
 import Distributions: Exponential
 
 """
+    Chartist(id, limit_rate, market_rate, coeff, sigma, horizon, size, size_sigma)
+
+Create a Chartist agent with given parameters and an empty dictionary of orders.
+"""
+function Chartist(
+    id::T,
+    limit_rate::F,
+    market_rate::F,
+    coeff::F,
+    sigma::F,
+    horizon::T,
+    size::T,
+    size_sigma::F
+    ) where {T <: Integer, F <: Real}
+    return Chartist(
+        id,
+        Dict{Integer, LimitOrder}(),
+        limit_rate,
+        market_rate,
+        coeff,
+        sigma,
+        horizon,
+        size,
+        size_sigma
+        )
+end
+
+"""
     initiate!(agent, book, params)
 
 Initiate NoiseTrader "agent" on the "book", for simulation with "params".

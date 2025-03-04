@@ -2,6 +2,32 @@
 import Distributions: Exponential
 
 """
+    MarketTaker(id, rate, exit_time, time_sigma, size, chunk, chunk_sigma)
+
+Create a Market Taker agent with given parameters and an empty dictionary of orders.
+"""
+function MarketTaker(
+    id::T,
+    rate::F,
+    exit_time::T,
+    time_sigma::F,
+    size::T,
+    chunk::T,
+    chunk_sigma::F
+    ) where {T <: Integer, F <: Real}
+    return MarketTaker(
+        id,
+        Dict{Integer, LimitOrder}(),
+        rate,
+        exit_time,
+        time_sigma,
+        size,
+        chunk,
+        chunk_sigma
+        )
+end
+
+"""
     initiate!(agent, book, params)
 
 Initiate MarketTaker "agent" on the "book", for simulation with "params".
@@ -28,7 +54,7 @@ end
 Activate an agent, trade or cancel an existing trade and send a new message.
 """
 function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
-                 params::Dict, simulation::Dict, msg::Dict)  # TODO: params are useless here, but are useful for other agents and consistency.
+                 params::Dict, simulation::Dict, msg::Dict)
     # initialise new messages
     msgs = Vector{Dict}()
     
@@ -61,7 +87,7 @@ function action!(agent::MarketTaker, book::Book, agents::Dict{Int64, Agent},
         matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
     else
-        throw(error("Unknown action for a Market Taker."))  # TODO: Maybe we should add the specific action here?
+        throw(error("Unknown action for a Market Taker."))
     end
     return msgs
 end

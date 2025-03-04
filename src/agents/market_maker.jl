@@ -2,6 +2,28 @@
 import Distributions: Exponential
 
 """
+    MarketMaker(id, rate, K, q, size)
+
+Create a Market Maker agent with given parameters and an empty dictionary of orders.
+"""
+function MarketMaker(
+    id::T,
+    rate::F,
+    K::T,
+    q::F,
+    size::T
+    ) where {T <: Integer, F <: Real}
+    return MarketMaker(
+        id,
+        Dict{Integer, LimitOrder}(),
+        rate,
+        K,
+        q,
+        size
+        )
+end
+
+"""
     initiate!(agent, book, params)
 
 Initiate MarketMaker "agent" on the "book", for simulation with "params".
