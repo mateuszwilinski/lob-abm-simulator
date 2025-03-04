@@ -27,10 +27,7 @@ function pass_order!(book::Book, order::Order, agents::Dict{Int64, Agent}, sim::
             save_snapshot!(sim, snapshot)
         end
     end
-
-    # create messages for affected agents
-    # msgs = messages_from_match(match_events, book, sim)
-
+    
     return msgs
 end
 
