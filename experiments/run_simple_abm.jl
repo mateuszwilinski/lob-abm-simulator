@@ -195,13 +195,13 @@ function main()
     for k in keys(simulation_outcome["mid_price"])
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
-    writedlm(string("../results/mid_price_", seed, "_", experiment, ".csv"), mid_price, ";")
+    writedlm(string("../results/mid_simple_", seed, "_", experiment, ".csv"), mid_price, ";")
     if params["snapshots"]
-        filename = string("../results/snapshots_", seed, "_", experiment, ".csv")
+        filename = string("../results/snapshots_simple_", seed, "_", experiment, ".csv")
         save_snapshots_to_csv(simulation_outcome["snapshots"], filename)
     end
     if params["save_events"]
-        filename = string("../results/events_", seed, "_", experiment, ".csv")
+        filename = string("../results/events_simple_", seed, "_", experiment, ".csv")
         save_events_to_csv(simulation_outcome["events"], filename)
     end
     println(mid_price[1000:100:2000])

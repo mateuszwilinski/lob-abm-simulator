@@ -2,10 +2,15 @@
 using CSV
 using DataFrames
 
+"""
+    main()
+
+Converts the events and snapshots data to the LOBSTER format.
+"""
 function main()
     # Get the names of the files from the command line
-    events_name = try ARGS[1] catch e "events_1_1" end
-    snapshots_name = try ARGS[2] catch e "snapshots_1_1" end
+    events_name = try ARGS[1] catch e "events_simple_1_1" end
+    snapshots_name = try ARGS[2] catch e "snapshots_simple_1_1" end
 
     # Load the full events data
     events_input = string("../results/", events_name, ".csv")
