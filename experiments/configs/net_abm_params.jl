@@ -1,0 +1,63 @@
+
+agents_params = Dict( # info_rate, limit_rate, market_rate, cancel_rate, sigma, size, size_sigma
+                "NetTrader" => (100.0, 20000.0, 10000.0, 60000.0, 1.0, 5, 1.5)
+                )  # Potentially we can have different types of net agents
+
+agents_names = ["NetTrader"]
+
+"""
+    init_agent(agent_name, id, params)
+
+Initialise an agent with given name, id and parameters.
+"""
+function init_agent(agent_name::String, id::Int64, params::Tuple)
+    agent = getfield(Main, Symbol(agent_name))(id, params...)
+    return agent
+end
+
+"""
+    initiate_agents(agents_params, agents_counts, agents_names)
+
+Initialise agents with given parameters and numbers, using names to conect the two and maintain order.
+"""
+function initiate_agents(agents_params::Dict, agents_counts::Vector{Int64}, agents_names::Vector{String})
+    agents = Dict{Int64, Agent}()
+
+    first_i = 1
+    for (j, name) in enumerate(agents_names)
+        params = agents_params[name]
+        for i in first_i:(first_i + agents_counts[j] - 1)
+            agents[i] = init_agent(name, i, params)
+        end
+        first_i += agents_counts[j]
+    end
+    return agents
+end
+
+"""
+    connect_agents!(agents, net)
+
+Connect agents with their neighbors according to the network edge list.
+"""
+function connect_agents!(agents::Dict{Int64, Agent}, net::Vector{Tuple})
+    for (i, j, w) in net
+        push!(agents[i].neighbors, (j, w))
+        push!(agents[j].neighbors, (i, w))
+    end
+end
+
+"""
+    read_network(net_file)
+
+Read network from file and return it as a list of tuples.
+"""
+function read_network(net_file::String)
+    net = Vector{Tuple}()
+    open(net_file) do f
+        for line in eachline(f)
+            i, j, w = split(line, ",")
+            push!(net, (parse(Int64, i), parse(Int64, j), parse(Float64, w)))
+        end
+    end
+    return net
+end

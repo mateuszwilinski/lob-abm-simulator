@@ -76,7 +76,8 @@ include("agents/fundamentalist.jl")
 struct NetTrader{T <: Integer, F <: Real} <: Agent
     id::T
     orders::Dict{T, LimitOrder}
-    neighbors::Vector{T}
+    neighbors::Vector{Tuple}
+    info_rate::F
     limit_rate::F
     market_rate::F
     cancel_rate::F

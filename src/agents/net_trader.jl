@@ -9,6 +9,7 @@ and empty vector of neighbors.
 """
 function NetTrader(
     id::T,
+    info_rate::F,
     limit_rate::F,
     market_rate::F,
     cancel_rate::F,
@@ -19,7 +20,8 @@ function NetTrader(
     return NetTrader(
         id,
         Dict{Integer, LimitOrder}(),
-        Vector{Integer}(),
+        Vector{Tuple}(),
+        info_rate,
         limit_rate,
         market_rate,
         cancel_rate,
@@ -114,5 +116,28 @@ function action!(agent::NetTrader, book::Book, agents::Dict{Int64, Agent},
     response["activation_time"] += activation_time_diff
     push!(msgs, response)
 
+    # agent sends messages to its neigbors
+    append!(msgs, msgs_to_neigbors(agent, msg))
+
+    return msgs
+end
+
+"""
+    msgs_to_neigbors(agent, msg)
+
+Send messages to neighbors of the agent, propagating his actions.
+"""
+function msgs_to_neigbors(agent::NetTrader, msg::Dict)
+    msgs = Vector{Dict}()
+    if msg["action"] in ["MARKET_ORDER", "LIMIT_ORDER"]
+        current_time = msg["activation_time"]
+        for (i, w) in agent.neighbors
+            if rand() < w
+                msg["recipient"] = i
+                msg["activation_time"] = current_time + ceil(Int64, rand(Exponential(agent.info_rate)))
+                push!(msgs, copy(msg))
+            end
+        end
+    end
     return msgs
 end
