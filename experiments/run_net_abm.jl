@@ -89,9 +89,6 @@ function main()
     n_agents = sum(values(agents_counts))
     agents_net = read_network(string("../data/nets/", args["net"], ".csv"))
     connect_agents!(agents, agents_net)
-    for i in 1:20
-        println(agents[i].neighbors)
-    end
 
     # Build starting orders
     asks = Dict{Float64, OrderedSet}()
@@ -149,7 +146,6 @@ function main()
         save_events_to_csv(simulation_outcome["events"], filename)
     end
     println(mid_price[1:1:10])
-    # println(mid_price)
 end
 
 main()
