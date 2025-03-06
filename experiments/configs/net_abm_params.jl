@@ -1,6 +1,6 @@
 
 agents_params = Dict( # info_rate, limit_rate, market_rate, cancel_rate, sigma, size, size_sigma
-                "NetTrader" => (100.0, 20000.0, 10000.0, 60000.0, 1.0, 5, 1.5)
+                "NetTrader" => (100.0, 5000.0, 20000.0, 40000.0, 2.0, 5, 1.5)
                 )  # Potentially we can have different types of net agents
 
 agents_names = ["NetTrader"]
