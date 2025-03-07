@@ -36,6 +36,11 @@ function main()
     snapshots = snapshots[events.type .!= 0, :]
     events = events[events.type .!= 0, :]
 
+    # Get rid of immediately executed limit orders
+    executed_limit_orders_id = (events.type .== 1) .& (events.size .== 0)
+    snapshots = snapshots[.!executed_limit_orders_id, :]
+    events = events[.!executed_limit_orders_id, :]
+
     # Save the LOBSTER version
     events_output = string("../results/", events_name, "_lobster.csv")
     snapshots_output = string("../results/", snapshots_name, "_lobster.csv")
