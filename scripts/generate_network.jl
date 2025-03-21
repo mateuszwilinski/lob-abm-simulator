@@ -22,7 +22,7 @@ function main()
         g = erdos_renyi(nodes_n, edges_n)
     elseif network_type == "random_regular"
         k = Int64(2 * edges_n / nodes_n)
-        g = random_regular(nodes_n, k)
+        g = random_regular_graph(nodes_n, k)
     elseif network_type == "barabasi_albert"
         k = Int64(2 * edges_n / nodes_n)
         m = 2 * k + 1
