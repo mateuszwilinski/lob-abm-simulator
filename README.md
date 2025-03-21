@@ -43,6 +43,21 @@ julia> using Pkg
 julia> Pkg.add(["DataStructures", "Distributions", "Test", "DelimitedFiles", "Statistics", "Random", "StaticArrays"])
 ```
 
+## Agents
+
+The simulator includes the following types of agents:
+
+- **Market Makers:** Agents that provide liquidity to the market by placing both buy and sell orders at different distances from the current mid price.
+- **Market Takers:** Agents that consume liquidity by dividing large orders into smaller market orders, placed at different points of time.
+- **Noise Traders:** Agents that trade randomly without any specific strategy, often used to simulate market noise.
+- **Fundamentalists:** Agents that trade based on the fundamental value of the asset, and external to the market dynamics.
+- **Chartists:** Agents that make trading decisions based on technical analysis, in this case based on price trends.
+- **Net Traders:** Agents with random strategy, but able to influence other agents connected to them.
+
+### Information Spreading Mechanism
+
+Net traders have the ability to influence other agents connected to them. This mechanism simulates the spread of information or rumors in the market. When a net trader makes a decision to place a market or a limit order, he sends a message to his neighbor with a certain probability. Message triggers the neighbor to trade in the same direction as the net trader. These messages are sent with an exponential rate described by the net traders "info_rate" parameter. This mechanism leads to cascading process of orders appearing in the market.
+
 ## Usage
 
 ### Running Simulations
