@@ -34,12 +34,13 @@ Install the required Julia packages:
 - DelimitedFiles
 - Statistics
 - Random
+- StaticArrays
 
 You can do the latter by entering Julia REPL and calling `Pkg.add`:
 
 ```julia
 julia> using Pkg
-julia> Pkg.add(["DataStructures", "Distributions", "Test", "DelimitedFiles", "Statistics", "Random"])
+julia> Pkg.add(["DataStructures", "Distributions", "Test", "DelimitedFiles", "Statistics", "Random", "StaticArrays"])
 ```
 
 ## Usage
