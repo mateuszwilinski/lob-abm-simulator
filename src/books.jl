@@ -7,7 +7,7 @@ mutable struct Book{T <: Real}
     best_bid::T
     best_ask::T
     symbol::String
-    tick_size::T
+    tick_size::T  # TODO: do we really need tick size here?
 end
 
 """
