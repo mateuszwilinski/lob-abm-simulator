@@ -49,6 +49,7 @@ function initiate!(agent::NetTrader, book::Book, params::Dict)
                                       rand(Exponential(agent.limit_rate)))
     cncl_msg["activation_time"] = ceil(Int64, params["initial_time"] +
                                        rand(Exponential(agent.cancel_rate)))
+    
     mrkt_msg["activation_priority"] = 1
     lmt_msg["activation_priority"] = 1
     cncl_msg["activation_priority"] = 1
@@ -56,6 +57,10 @@ function initiate!(agent::NetTrader, book::Book, params::Dict)
     mrkt_msg["action"] = "MARKET_ORDER"
     lmt_msg["action"] = "LIMIT_ORDER"
     cncl_msg["action"] = "CANCEL_ORDER"
+    
+    mrkt_msg["info"] = false
+    lmt_msg["info"] = false
+    cncl_msg["info"] = false
     
     msgs = Vector{Dict}()
     append!(msgs, [mrkt_msg, lmt_msg, cncl_msg])
@@ -76,49 +81,50 @@ function action!(agent::NetTrader, book::Book, agents::Dict{Int64, Agent},
     if msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-        order = MarketOrder(order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol)
+        if msg["info"]
+            order = MarketOrder(order_size, msg["is_bid"], simulation["last_id"], agent.id, book.symbol)
+        else
+            order = MarketOrder(order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol)
+            push!(msgs, self_msg(msg, agent.market_rate))
+            msg["is_bid"] = order.is_bid
+        end
+        append!(msgs, msgs_to_neigbors(agent, msg))
+
         matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
-
-        rate = agent.market_rate
     elseif msg["action"] == "LIMIT_ORDER"
+        simulation["last_id"] += 1
         price = mid_price(book)
         if isnan(price)
             price = params["fundamental_dynamics"][simulation["current_time"]]
         end
         price += randn() * agent.sigma
-        simulation["last_id"] += 1
         order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-        order = LimitOrder(price, order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol;
-                           tick_size=book.tick_size)
+        if msg["info"]  # TODO: if the side is known, it should affect the price
+            order = LimitOrder(price, order_size, msg["is_bid"], simulation["last_id"], agent.id, book.symbol;
+                               tick_size=book.tick_size)
+        else
+            order = LimitOrder(price, order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol;
+                               tick_size=book.tick_size)
+            push!(msgs, self_msg(msg, agent.limit_rate))
+            msg["is_bid"] = order.is_bid
+        end
+        append!(msgs, msgs_to_neigbors(agent, msg))
+
         matching_msgs = pass_order!(book, order, agents, simulation, params)
         append!(msgs, matching_msgs)
-
-        rate = agent.limit_rate
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
             order_id = rand(keys(agent.orders))
             order = agent.orders[order_id]
             cancel_order!(order, book, agent, simulation, params)
         end
-
-        rate = agent.cancel_rate
+        push!(msgs, self_msg(msg, agent.cancel_rate))
     elseif msg["action"] == "UPDATE_ORDER"
         # that is the only case when net trader does not send a new message
-        return msgs
     else
         throw(error("Unknown action for a Net Trader."))
     end
-
-    # agent sends next messages
-    activation_time_diff = ceil(Int64, rand(Exponential(rate)))
-    response = copy(msg)
-    response["activation_time"] += activation_time_diff
-    push!(msgs, response)
-
-    # agent sends messages to its neigbors
-    append!(msgs, msgs_to_neigbors(agent, msg))
-
     return msgs
 end
 
@@ -130,14 +136,29 @@ Send messages to neighbors of the agent, propagating his actions.
 function msgs_to_neigbors(agent::NetTrader, msg::Dict)
     msgs = Vector{Dict}()
     if msg["action"] in ["MARKET_ORDER", "LIMIT_ORDER"]
-        current_time = msg["activation_time"]
         for (i, w) in agent.neighbors
             if rand() < w
-                msg["recipient"] = i
-                msg["activation_time"] = current_time + ceil(Int64, rand(Exponential(agent.info_rate)))
-                push!(msgs, copy(msg))
+                response = copy(msg)
+                activation_time_diff = ceil(Int64, rand(Exponential(agent.info_rate)))
+                response["recipient"] = i
+                response["activation_time"] += activation_time_diff
+                response["info"] = true
+                response["activation_priority"] = rand(2:20)
+                push!(msgs, response)
             end
         end
     end
     return msgs
+end
+
+"""
+    self_msg(msg, rate)
+
+Create a new message for the agent himself.
+"""
+function self_msg(msg::Dict, rate::Real)
+    response = copy(msg)
+    activation_time_diff = ceil(Int64, rand(Exponential(rate)))
+    response["activation_time"] += activation_time_diff
+    return response
 end

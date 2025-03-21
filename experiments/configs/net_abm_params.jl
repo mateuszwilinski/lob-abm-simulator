@@ -61,3 +61,33 @@ function read_network(net_file::String)
     end
     return net
 end
+
+function fill_book!(book::Book, agents::Dict{Int64, Agent}, params::Dict)
+    asks = Dict{Float64, OrderedSet{LimitOrder}}()
+    bids = Dict{Float64, OrderedSet{LimitOrder}}()
+
+    for i in 1:params["init_volume"]
+        price = params["fundamental_price"] + randn() * params["init_book_sigma"]
+        agent = rand(keys(agents))
+        size = 1
+        order = LimitOrder(
+            price,
+            size,
+            price < params["fundamental_price"],
+            i,
+            agent,
+            book.symbol
+            )
+        if order.is_bid
+            place_order!(bids, order)
+        else
+            place_order!(asks, order)
+        end
+        agents[agent].orders[i] = order
+    end
+
+    book.bids = bids
+    book.asks = asks
+    update_best_bid!(book)
+    update_best_ask!(book)
+end

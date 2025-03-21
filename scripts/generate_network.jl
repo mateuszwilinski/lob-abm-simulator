@@ -20,9 +20,16 @@ function main()
     Random.seed!(seed)
     if network_type == "erdos_renyi"
         g = erdos_renyi(nodes_n, edges_n)
+    elseif network_type == "random_regular"
+        k = Int64(2 * edges_n / nodes_n)
+        g = random_regular(nodes_n, k)
+    elseif network_type == "barabasi_albert"
+        k = Int64(2 * edges_n / nodes_n)
+        m = 2 * k + 1
+        g = barabasi_albert(nodes_n, m, k)
     else
         throw(ArgumentError("Network type not recognised"))
-    end  # TODO: for now only works with ER
+    end
     connections = Vector{Tuple}()
     for e in edges(g)
         push!(connections, (src(e), dst(e), weight))

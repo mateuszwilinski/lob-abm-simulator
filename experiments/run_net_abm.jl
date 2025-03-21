@@ -82,6 +82,8 @@ function main()
     params["initial_time"] = 1  # Initial time cannot be zero or negative.
     params["fundamental_price"] = 100.0
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
+    params["init_volume"] = 100
+    params["init_book_sigma"] = 4.0
 
     # Initiate agents
     agents_counts = [args["agents"]]
@@ -90,26 +92,8 @@ function main()
     agents_net = read_network(string("../data/nets/", args["net"], ".csv"))
     connect_agents!(agents, agents_net)
 
-    # Build starting orders
-    asks = Dict{Float64, OrderedSet}()
-    asks[101.0] = OrderedSet()
-    push!(asks[101.0], LimitOrder(101.0, 15, false, 1, 10, "ABC"))
-    agents[10].orders[asks[101.0][1].id] = asks[101.0][1]
-    push!(asks[101.0], LimitOrder(101.0, 15, false, 2, 10, "ABC"))
-    agents[10].orders[asks[101.0][2].id] = asks[101.0][2]
-    push!(asks[101.0], LimitOrder(101.0, 20, false, 3, 10, "ABC"))
-    agents[10].orders[asks[101.0][3].id] = asks[101.0][3]
-    
-    bids = Dict{Float64, OrderedSet}()
-    bids[99.0] = OrderedSet()
-    push!(bids[99.0], LimitOrder(99.0, 15, true, 4, 10, "ABC"))
-    agents[10].orders[bids[99.0][1].id] = bids[99.0][1]
-    push!(bids[99.0], LimitOrder(99.0, 15, true, 5, 10, "ABC"))
-    agents[10].orders[bids[99.0][2].id] = bids[99.0][2]
-    push!(bids[99.0], LimitOrder(99.0, 20, true, 6, 10, "ABC"))
-    agents[10].orders[bids[99.0][3].id] = bids[99.0][3]
-
     # Initiate order book
+    Random.seed!(seed)
     book = Book(
         Dict{Float64, OrderedSet{LimitOrder}}(),
         Dict{Float64, OrderedSet{LimitOrder}}(),
@@ -119,15 +103,10 @@ function main()
         params["tick_size"]
     )
     
-    book.bids = bids
-    book.asks = asks
-    update_best_bid!(book)
-    update_best_ask!(book)
-
-    params["first_id"] = 6
+    fill_book!(book, agents, params)
+    params["first_id"] = params["init_volume"] + 1
 
     # Run simulation
-    Random.seed!(seed)
     messages = PriorityQueue()  # TODO: Add correct types
     simulation_outcome = run_simulation(agents, book, messages, params)
     
