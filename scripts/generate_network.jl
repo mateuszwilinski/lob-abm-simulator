@@ -24,9 +24,9 @@ function main()
         k = Int64(2 * edges_n / nodes_n)
         g = random_regular_graph(nodes_n, k)
     elseif network_type == "barabasi_albert"
-        k = Int64(2 * edges_n / nodes_n)
+        k = Int64(edges_n / nodes_n)
         m = 2 * k + 1
-        g = barabasi_albert(nodes_n, m, k)
+        g = barabasi_albert(nodes_n, m, k, complete=true)
     else
         throw(ArgumentError("Network type not recognised"))
     end
