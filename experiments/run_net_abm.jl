@@ -52,7 +52,7 @@ function parse_commandline()
         "--net"
             help = "file name of the network to use"
             arg_type = String
-            default = "erdos_renyi_1000_2500_1"
+            default = "erdos_renyi_1000_4000_1"
     end
     return parse_args(s)
 end
@@ -124,7 +124,6 @@ function main()
         filename = string("../results/events_net_", seed, "_", experiment, ".csv")
         save_events_to_csv(simulation_outcome["events"], filename)
     end
-    println(mid_price[1:1:10])
 end
 
 main()
