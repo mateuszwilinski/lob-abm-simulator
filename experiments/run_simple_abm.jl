@@ -41,6 +41,10 @@ function parse_commandline()
         "--snapshots", "-p"
             help = "save snapshots? (only with --save_events)"
             action = :store_true
+        "--levels"
+            help = "number of levels in the order book"
+            arg_type = Int
+            default = 5
         "--end_time", "-e"
             help = "simulation length"
             arg_type = Int
@@ -125,6 +129,7 @@ function main()
 
     params["end_time"] = args["end_time"]
     params["snapshots"] = args["snapshots"]
+    params["levels"] = args["levels"]
     params["save_events"] = args["save_events"]
     params["tick_size"] = args["tick_size"]
     if params["snapshots"] & !params["save_events"]
@@ -134,9 +139,11 @@ function main()
     params["initial_time"] = 1  # Initial time cannot be zero or negative.
     params["fundamental_price"] = 100.0
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
-    params["fundamental_dynamics"][Int(params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
-    params["fundamental_dynamics"][Int(params["end_time"] / 2):end] .= 1.0 * params["fundamental_price"]
-    params["fundamental_dynamics"][Int(3 * params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
+    # params["fundamental_dynamics"][Int(params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
+    # params["fundamental_dynamics"][Int(params["end_time"] / 2):end] .= 1.0 * params["fundamental_price"]
+    # params["fundamental_dynamics"][Int(3 * params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
+    params["init_volume"] = 100
+    params["init_book_sigma"] = 4.0
 
     # Initiate agents
     agents_counts = [
@@ -149,26 +156,8 @@ function main()
     agents = initiate_agents(agents_params, agents_counts, agents_names)
     n_agents = sum(values(agents_counts))
 
-    # Build starting orders
-    asks = Dict{Float64, OrderedSet}()
-    asks[101.0] = OrderedSet()
-    push!(asks[101.0], LimitOrder(101.0, 15, false, 1, 1000, "ABC"))
-    agents[1000].orders[asks[101.0][1].id] = asks[101.0][1]
-    push!(asks[101.0], LimitOrder(101.0, 15, false, 2, 1000, "ABC"))
-    agents[1000].orders[asks[101.0][2].id] = asks[101.0][2]
-    push!(asks[101.0], LimitOrder(101.0, 20, false, 3, 1000, "ABC"))
-    agents[1000].orders[asks[101.0][3].id] = asks[101.0][3]
-    
-    bids = Dict{Float64, OrderedSet}()
-    bids[99.0] = OrderedSet()
-    push!(bids[99.0], LimitOrder(99.0, 15, true, 4, 1000, "ABC"))
-    agents[1000].orders[bids[99.0][1].id] = bids[99.0][1]
-    push!(bids[99.0], LimitOrder(99.0, 15, true, 5, 1000, "ABC"))
-    agents[1000].orders[bids[99.0][2].id] = bids[99.0][2]
-    push!(bids[99.0], LimitOrder(99.0, 20, true, 6, 1000, "ABC"))
-    agents[1000].orders[bids[99.0][3].id] = bids[99.0][3]
-
     # Initiate order book
+    Random.seed!(seed)
     book = Book(
         Dict{Float64, OrderedSet{LimitOrder}}(),
         Dict{Float64, OrderedSet{LimitOrder}}(),
@@ -177,16 +166,11 @@ function main()
         "ABC",
         params["tick_size"]
     )
-    
-    book.bids = bids
-    book.asks = asks
-    update_best_bid!(book)
-    update_best_ask!(book)
 
-    params["first_id"] = 6
+    fill_book!(book, agents, agents_counts, params)
+    params["first_id"] = params["init_volume"] + 1
 
     # Run simulation
-    Random.seed!(seed)
     messages = PriorityQueue()  # TODO: Add correct types
     simulation_outcome = run_simulation(agents, book, messages, params)
     
