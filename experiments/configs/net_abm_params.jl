@@ -62,6 +62,11 @@ function read_network(net_file::String)
     return net
 end
 
+"""
+    fill_book!(book, agents, params)
+
+Fill the order book with initial orders.
+"""
 function fill_book!(book::Book, agents::Dict{Int64, Agent}, params::Dict)
     asks = Dict{Float64, OrderedSet{LimitOrder}}()
     bids = Dict{Float64, OrderedSet{LimitOrder}}()
@@ -76,7 +81,7 @@ function fill_book!(book::Book, agents::Dict{Int64, Agent}, params::Dict)
             price < params["fundamental_price"],
             i,
             agent,
-            book.symbol
+            book.symbolparams["tick_size"]
             )
         if order.is_bid
             place_order!(bids, order)
