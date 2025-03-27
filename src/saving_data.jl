@@ -165,11 +165,14 @@ end
 Save snapshots to a CSV file.
 """
 function save_snapshots_to_csv(snapshots::Vector{Snapshot}, filename::String)
+    # check how many levels do snapshots have
+    levels = size(snapshots[1].ask_prices)[1]
+
     open(filename, "w") do io
         # Write each order directly
         for s in snapshots
             snapshot_strings = String[]
-            for i in 1:5
+            for i in 1:levels
                 push!(
                     snapshot_strings,
                     string(
@@ -177,7 +180,7 @@ function save_snapshots_to_csv(snapshots::Vector{Snapshot}, filename::String)
                         "$(s.ask_volumes[i]),",
                         "$(s.bid_prices[i]),",
                         "$(s.bid_volumes[i])",
-                        i == 5 ? "" : ","  # Add comma if not the last element
+                        i == levels ? "" : ","  # Add comma if not the last element
                         )
                     )
             end

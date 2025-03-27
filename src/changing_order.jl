@@ -9,7 +9,7 @@ function cancel_order!(order::LimitOrder, book::Book, agent::Agent, simulation::
     if parameters["save_events"]
         save_cancel!(simulation, order)
         if parameters["snapshots"]
-            snapshot = take_snapshot(book)
+            snapshot = take_snapshot(book, parameters["levels"])
             save_snapshot!(simulation, snapshot)
         end
     end
@@ -35,7 +35,7 @@ function cancel_inconsistent_orders!(
             if parameters["save_events"]
                 save_cancel!(simulation, o)
                 if parameters["snapshots"]
-                    snapshot = take_snapshot(book)
+                    snapshot = take_snapshot(book, parameters["levels"])
                     save_snapshot!(simulation, snapshot)
                 end
             end
@@ -45,7 +45,7 @@ function cancel_inconsistent_orders!(
             if parameters["save_events"]
                 save_cancel!(simulation, o)
                 if parameters["snapshots"]
-                    snapshot = take_snapshot(book)
+                    snapshot = take_snapshot(book, parameters["levels"])
                     save_snapshot!(simulation, snapshot)
                 end
             end
@@ -65,7 +65,7 @@ function cancel_inconsistent_orders!(agent::Agent, book::Book, is_bid::Bool, par
             if parameters["save_events"]
                 save_cancel!(simulation, o)
                 if parameters["snapshots"]
-                    snapshot = take_snapshot(book)
+                    snapshot = take_snapshot(book, parameters["levels"])
                     save_snapshot!(simulation, snapshot)
                 end
             end
@@ -127,7 +127,7 @@ function modify_order!(
     if parameters["save_events"]
         save_modify!(simulation, order)
         if parameters["snapshots"]
-            snapshot = take_snapshot(book)
+            snapshot = take_snapshot(book, parameters["levels"])
             save_snapshot!(simulation, snapshot)
         end
     end
