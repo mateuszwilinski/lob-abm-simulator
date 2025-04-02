@@ -81,7 +81,8 @@ function fill_book!(book::Book, agents::Dict{Int64, Agent}, params::Dict)
             price < params["fundamental_price"],
             i,
             agent,
-            book.symbolparams["tick_size"]
+            book.symbol;
+            tick_size=params["tick_size"]
             )
         if order.is_bid
             place_order!(bids, order)
