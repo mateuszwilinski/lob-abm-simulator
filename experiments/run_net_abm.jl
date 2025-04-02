@@ -13,7 +13,7 @@ include("../src/saving_data.jl")
 include("../src/handling_order.jl")
 include("../src/changing_order.jl")
 include("../src/simulation.jl")
-include("configs/simple_abm_params.jl")
+include("configs/net_abm_params.jl")
 
 """
     function parse_commandline()
@@ -49,66 +49,14 @@ function parse_commandline()
             help = "simulation length"
             arg_type = Int
             default = 360000
-        "--mm1"
-            help = "number of MarketMaker(1) agents"
+        "--agents"
+            help = "number of NetTrader agents"
             arg_type = Int
-            default = 20
-        "--mm2"
-            help = "number of MarketMaker(2) agents"
-            arg_type = Int
-            default = 20
-        "--mm3"
-            help = "number of MarketMaker(3) agents"
-            arg_type = Int
-            default = 20
-        "--mt1"
-            help = "number of MarketTaker(1) agents"
-            arg_type = Int
-            default = 10
-        "--mt2"
-            help = "number of MarketTaker(2) agents"
-            arg_type = Int
-            default = 10
-        "--mt3"
-            help = "number of MarketTaker(3) agents"
-            arg_type = Int
-            default = 10
-        "--fund1"
-            help = "number of Fundamentalist(1) agents"
-            arg_type = Int
-            default = 10
-        "--fund2"
-            help = "number of Fundamentalist(2) agents"
-            arg_type = Int
-            default = 10
-        "--fund3"
-            help = "number of Fundamentalist(3) agents"
-            arg_type = Int
-            default = 10
-        "--fund4"
-            help = "number of Fundamentalist(4) agents"
-            arg_type = Int
-            default = 10
-        "--chart1"
-            help = "number of Chartist(1) agents"
-            arg_type = Int
-            default = 100
-        "--chart2"
-            help = "number of Chartist(2) agents"
-            arg_type = Int
-            default = 100
-        "--chart3"
-            help = "number of Chartist(3) agents"
-            arg_type = Int
-            default = 100
-        "--chart4"
-            help = "number of Chartist(4) agents"
-            arg_type = Int
-            default = 100
-        "--nois1"
-            help = "number of NoiseTrader(1) agents"
-            arg_type = Int
-            default = 1060
+            default = 1000
+        "--net"
+            help = "file name of the network to use"
+            arg_type = String
+            default = "erdos_renyi_1000_4000_1"
     end
     return parse_args(s)
 end
@@ -139,22 +87,15 @@ function main()
     params["initial_time"] = 1  # Initial time cannot be zero or negative.
     params["fundamental_price"] = 100.0
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
-    # params["fundamental_dynamics"][Int(params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
-    # params["fundamental_dynamics"][Int(params["end_time"] / 2):end] .= 1.0 * params["fundamental_price"]
-    # params["fundamental_dynamics"][Int(3 * params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
     params["init_volume"] = 100
     params["init_book_sigma"] = 4.0
 
     # Initiate agents
-    agents_counts = [
-        args["mm1"], args["mm2"], args["mm3"],
-        args["mt1"], args["mt2"], args["mt3"],
-        args["fund1"], args["fund2"], args["fund3"], args["fund4"],
-        args["chart1"], args["chart2"], args["chart3"], args["chart4"],
-        args["nois1"]
-    ]
+    agents_counts = [args["agents"]]
     agents = initiate_agents(agents_params, agents_counts, agents_names)
     n_agents = sum(values(agents_counts))
+    agents_net = read_network(string("../data/nets/", args["net"], ".csv"))
+    connect_agents!(agents, agents_net)
 
     # Initiate order book
     Random.seed!(seed)
@@ -166,8 +107,8 @@ function main()
         "ABC",
         params["tick_size"]
     )
-
-    fill_book!(book, agents, agents_counts, params)
+    
+    fill_book!(book, agents, params)
     params["first_id"] = params["init_volume"] + 1
 
     # Run simulation
@@ -179,17 +120,15 @@ function main()
     for k in keys(simulation_outcome["mid_price"])
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
-    writedlm(string("../results/mid_simple_", seed, "_", experiment, ".csv"), mid_price, ";")
+    writedlm(string("../results/mid_net_", seed, "_", experiment, ".csv"), mid_price, ";")
     if params["snapshots"]
-        filename = string("../results/snapshots_simple_", seed, "_", experiment, ".csv")
+        filename = string("../results/snapshots_net_", seed, "_", experiment, ".csv")
         save_snapshots_to_csv(simulation_outcome["snapshots"], filename)
     end
     if params["save_events"]
-        filename = string("../results/events_simple_", seed, "_", experiment, ".csv")
+        filename = string("../results/events_net_", seed, "_", experiment, ".csv")
         save_events_to_csv(simulation_outcome["events"], filename)
     end
-    println(mid_price[10000:10000:end])
-    # println(mid_price)
 end
 
 main()

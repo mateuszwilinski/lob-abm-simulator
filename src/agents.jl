@@ -72,3 +72,18 @@ struct Fundamentalist{T <: Integer, F <: Real} <: Agent
 end
 
 include("agents/fundamentalist.jl")
+
+struct NetTrader{T <: Integer, F <: Real} <: Agent
+    id::T
+    orders::Dict{T, LimitOrder}
+    neighbors::Vector{Tuple}
+    info_rate::F
+    limit_rate::F
+    market_rate::F
+    cancel_rate::F
+    sigma::F
+    size::T
+    size_sigma::F
+end
+
+include("agents/net_trader.jl")

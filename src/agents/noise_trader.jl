@@ -100,7 +100,7 @@ function action!(agent::NoiseTrader, book::Book, agents::Dict{Int64, Agent},
 
         rate = agent.cancel_rate
     elseif msg["action"] == "UPDATE_ORDER"
-        # that is the only case when noise trades dpes not send new message
+        # that is the only case when noise trader does not send a new message
         return msgs
     else
         throw(error("Unknown action for a Noise Trader."))

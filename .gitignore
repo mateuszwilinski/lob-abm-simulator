@@ -24,7 +24,7 @@ docs/site/
 # environment.
 Manifest.toml
 
-# Experimental folders
+# Folders with data and plots
 /bash/
 /results/
 /data/

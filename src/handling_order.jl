@@ -23,7 +23,7 @@ function pass_order!(book::Book, order::Order, agents::Dict{Int64, Agent}, sim::
     if params["save_events"]
         save_order!(sim, order)
         if params["snapshots"]
-            snapshot = take_snapshot(book)
+            snapshot = take_snapshot(book, params["levels"])
             save_snapshot!(sim, snapshot)
         end
     end
@@ -154,7 +154,8 @@ function match_order!(
                 )
     time = sim["current_time"]
     msgs = Vector{Dict}()
-    for o in take(book_level, length(book_level)-1)
+    while length(book_level) > 1
+        o = first(book_level)
         if get_size(o) == get_size(order)
             execution_size = get_size(order)
             o.size[] = 0
@@ -265,7 +266,7 @@ function process_execution_information!(
 
     # save event if requested
     if params["save_events"]
-        event = Event(
+        event = Event(  # TODO: why not separate function save_execution?
             sim["current_time"],
             4,
             passive.id,
@@ -278,7 +279,7 @@ function process_execution_information!(
             )
         push!(sim["events"], event)
         if params["snapshots"]
-            snapshot = take_snapshot(book)
+            snapshot = take_snapshot(book, params["levels"])
             save_snapshot!(sim, snapshot)
         end
     end

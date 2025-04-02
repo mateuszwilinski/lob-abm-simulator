@@ -51,3 +51,43 @@ function initiate_agents(agents_params::Dict, agents_counts::Vector{Int64}, agen
     end
     return agents
 end
+
+"""
+    fill_book!(book, agents, params)
+
+Fill the order book with initial orders.
+"""
+function fill_book!(book::Book, agents::Dict{Int64, Agent}, agents_counts::Vector{Int64}, params::Dict)
+    asks = Dict{Float64, OrderedSet{LimitOrder}}()
+    bids = Dict{Float64, OrderedSet{LimitOrder}}()
+
+    agents_ids = collect(keys(agents))
+    # we do not want market makers or takers to place initial orders
+    agents_ids = agents_ids[agents_ids .> sum(agents_counts[1:6])]
+
+    for i in 1:params["init_volume"]
+        price = params["fundamental_price"] + randn() * params["init_book_sigma"]
+        agent = rand(agents_ids)
+        size = 1
+        order = LimitOrder(
+            price,
+            size,
+            price < params["fundamental_price"],
+            i,
+            agent,
+            book.symbol;
+            tick_size=params["tick_size"]
+            )
+        if order.is_bid
+            place_order!(bids, order)
+        else
+            place_order!(asks, order)
+        end
+        agents[agent].orders[i] = order
+    end
+
+    book.bids = bids
+    book.asks = asks
+    update_best_bid!(book)
+    update_best_ask!(book)
+end

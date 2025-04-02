@@ -1,16 +1,20 @@
 
 using CSV
 using DataFrames
+using Tables
+using HDF5
 
 """
     main()
 
-Converts the events and snapshots data to the LOBSTER format.
+Converts the events and snapshots data to the LOBSTER format and saves it in a single
+HDF5 file, together with labels.
 """
 function main()
     # Get the names of the files from the command line
     events_name = try ARGS[1] catch e "events_simple_1_1" end
     snapshots_name = try ARGS[2] catch e "snapshots_simple_1_1" end
+    name = try ARGS[3] catch e "simple_1_1" end
 
     # Load the full events data
     events_input = string("../results/", events_name, ".csv")
@@ -20,8 +24,10 @@ function main()
     snapshots = DataFrame(CSV.File(snapshots_input, delim=',', header=false))
     levels = Int64(size(snapshots)[2] / 4)
 
-    # Add the header
-    rename!(events, [:time, :type, :id, :size, :price, :dir, :agent, :cross_order, :cross_agent])
+    # Add the header and create column types vectors
+    events_columns = [:time, :type, :id, :size, :price, :dir, :agent, :cross_order, :cross_agent]
+    rename!(events, events_columns)
+
     snapshots_columns = String[]
     for i in 1:levels
         push!(snapshots_columns, "ask_$(i)_price")
@@ -43,12 +49,19 @@ function main()
     snapshots = snapshots[.!executed_limit_orders_id, :]
     events = events[.!executed_limit_orders_id, :]
 
-    # Save the LOBSTER version
-    events_output = string("../results/", events_name, "_lobster.csv")
-    snapshots_output = string("../results/", snapshots_name, "_lobster.csv")
+    # Convert data to NamedTuples
+    events = Tables.rowtable(events)
+    snapshots = Tables.rowtable(snapshots)
 
-    CSV.write(events_output, events)
-    CSV.write(snapshots_output, snapshots)
+    # Create labels
+    labels = zeros(Int64, length(events))
+
+    # Save the LOBSTER version
+    h5open(string("../results/", name, ".h5"), "w") do file
+        file[joinpath(name, "EVENTS")] = events
+        file[joinpath(name, "SNAPSHOTS")] = snapshots
+        file[joinpath(name, "LABELS")] = labels
+    end
 end
 
 main()
