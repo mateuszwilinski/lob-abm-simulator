@@ -41,6 +41,10 @@ function parse_commandline()
         "--snapshots", "-p"
             help = "save snapshots? (only with --save_events)"
             action = :store_true
+        "--levels"
+            help = "number of levels in the order book"
+            arg_type = Int
+            default = 5
         "--end_time", "-e"
             help = "simulation length"
             arg_type = Int
@@ -73,6 +77,7 @@ function main()
 
     params["end_time"] = args["end_time"]
     params["snapshots"] = args["snapshots"]
+    params["levels"] = args["levels"]
     params["save_events"] = args["save_events"]
     params["tick_size"] = args["tick_size"]
     if params["snapshots"] & !params["save_events"]
