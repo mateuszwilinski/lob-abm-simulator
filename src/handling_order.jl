@@ -154,7 +154,8 @@ function match_order!(
                 )
     time = sim["current_time"]
     msgs = Vector{Dict}()
-    for o in take(book_level, length(book_level)-1)
+    while length(book_level) > 1
+        o = first(book_level)
         if get_size(o) == get_size(order)
             execution_size = get_size(order)
             o.size[] = 0
