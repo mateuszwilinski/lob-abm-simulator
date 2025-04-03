@@ -24,7 +24,7 @@ function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table s begin
         "--seed"
-            help = "seed"
+            help = "random seed"
             arg_type = Int
             default = 1
         "--experiment"
@@ -57,6 +57,10 @@ function parse_commandline()
             help = "file name of the network to use"
             arg_type = String
             default = "erdos_renyi_1000_4000_1"
+        "--dir"
+            help = "directory to save results"
+            arg_type = String
+            default = "../results/"
     end
     return parse_args(s)
 end
@@ -120,13 +124,13 @@ function main()
     for k in keys(simulation_outcome["mid_price"])
         mid_price[k] = simulation_outcome["mid_price"][k]
     end
-    writedlm(string("../results/mid_net_", seed, "_", experiment, ".csv"), mid_price, ";")
+    writedlm(string(args["dir"], "mid_net_", seed, "_", experiment, ".csv"), mid_price, ";")
     if params["snapshots"]
-        filename = string("../results/snapshots_net_", seed, "_", experiment, ".csv")
+        filename = string(args["dir"], "snapshots_net_", seed, "_", experiment, ".csv")
         save_snapshots_to_csv(simulation_outcome["snapshots"], filename)
     end
     if params["save_events"]
-        filename = string("../results/events_net_", seed, "_", experiment, ".csv")
+        filename = string(args["dir"], "events_net_", seed, "_", experiment, ".csv")
         save_events_to_csv(simulation_outcome["events"], filename)
     end
 end
