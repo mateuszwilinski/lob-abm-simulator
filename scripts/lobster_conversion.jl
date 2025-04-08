@@ -43,6 +43,18 @@ function main()
     snapshots = snapshots[.!executed_limit_orders_id, :]
     events = events[.!executed_limit_orders_id, :]
 
+    # Convert price to Int64
+    events.price = round.(Int64, events.price * 10000)
+    for i in 1:2:size(snapshots)[2]  # TODO: check efficiency and potential improvements
+        ids = isnan.(snapshots[:, i])
+        if i % 4 == 1
+            snapshots[ids, i] .= 999999.9999
+        elseif i % 4 == 3
+            snapshots[ids, i] .= -999999.9999
+        end
+        snapshots[!, i] = round.(Int64, snapshots[!, i] * 10000)
+    end
+
     # Save the LOBSTER version
     events_output = string("../results/", events_name, "_lobster.csv")
     snapshots_output = string("../results/", snapshots_name, "_lobster.csv")
