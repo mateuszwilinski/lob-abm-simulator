@@ -24,8 +24,9 @@ function main()
     # Compute attention data
     attention_data = combine(
                         groupby(events, :cross_order),
-                        [:time, :cross_agent] .=> minimum;
-                        renamecols=false
+                        [:time, :cross_agent, :size, :dir] =>
+                        ((t, c, s, d) -> (time=minimum(t), cross_agent=minimum(c), volume=sum(s)*minimum(d))) =>
+                        AsTable
                         )
     
     # Add other columns
@@ -39,6 +40,7 @@ function main()
                         :order_id,
                         :trading_date,
                         :owner_id,
+                        :volume,
                         :registration_date,
                         :isin,
                         :transaction_basis,
@@ -50,6 +52,7 @@ function main()
                         :trading_date,
                         :registration_date,
                         :owner_id,
+                        :volume,
                         :isin,
                         :transaction_basis,
                         :holding_type
