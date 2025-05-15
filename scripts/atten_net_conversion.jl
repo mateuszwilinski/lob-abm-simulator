@@ -31,7 +31,7 @@ function main()
     
     # Add other columns
     attention_data[!, :registration_date] = attention_data.time
-    attention_data[!, :isin] .= 1
+    attention_data[!, :isin] .= rand((1, 2), size(attention_data, 1))
     attention_data[!, :transaction_basis] .= 1
     attention_data[!, :holding_type] .= 1
 
