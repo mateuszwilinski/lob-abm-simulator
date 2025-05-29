@@ -11,7 +11,7 @@ function main()
     # Get the names of the files from the command line
     events_name = try ARGS[1] catch e "events_simple_1_1" end
     snapshots_name = try ARGS[2] catch e "snapshots_simple_1_1" end
-    directory = try ARGS[3] catch e "../results" end
+    directory = try ARGS[3] catch e "../results/" end
 
     # Load the full events data
     events_input = string(directory, events_name, ".csv")
@@ -60,8 +60,8 @@ function main()
     events_output = string(directory, events_name, "_lobster.csv")
     snapshots_output = string(directory, snapshots_name, "_lobster.csv")
 
-    CSV.write(events_output, events)
-    CSV.write(snapshots_output, snapshots)
+    CSV.write(events_output, events; writeheader=false)
+    CSV.write(snapshots_output, snapshots; writeheader=false)
 end
 
 main()
