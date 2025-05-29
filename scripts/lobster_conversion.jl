@@ -11,10 +11,11 @@ function main()
     # Get the names of the files from the command line
     events_name = try ARGS[1] catch e "events_simple_1_1" end
     snapshots_name = try ARGS[2] catch e "snapshots_simple_1_1" end
+    directory = try ARGS[3] catch e "../results" end
 
     # Load the full events data
-    events_input = string("../results/", events_name, ".csv")
-    snapshots_input = string("../results/", snapshots_name, ".csv")
+    events_input = string(directory, events_name, ".csv")
+    snapshots_input = string(directory, snapshots_name, ".csv")
     
     events = DataFrame(CSV.File(events_input, delim=',', header=false))
     snapshots = DataFrame(CSV.File(snapshots_input, delim=',', header=false))
@@ -56,8 +57,8 @@ function main()
     end
 
     # Save the LOBSTER version
-    events_output = string("../results/", events_name, "_lobster.csv")
-    snapshots_output = string("../results/", snapshots_name, "_lobster.csv")
+    events_output = string(directory, events_name, "_lobster.csv")
+    snapshots_output = string(directory, snapshots_name, "_lobster.csv")
 
     CSV.write(events_output, events)
     CSV.write(snapshots_output, snapshots)
