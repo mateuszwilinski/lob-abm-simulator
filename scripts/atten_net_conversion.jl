@@ -5,7 +5,7 @@ using DataFrames
 """
     main()
 
-Converts the events and snapshots data to the LOBSTER format.
+Converts the events to attention testing format.
 """
 function main()
     # Get the names of the files from the command line
