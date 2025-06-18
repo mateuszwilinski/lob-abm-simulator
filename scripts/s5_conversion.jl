@@ -215,8 +215,6 @@ function process_msgs(messages::DataFrame, book::DataFrame, na_val::Int64)
                  :size, :delta_t_s, :delta_t_ns, :time_s, :time_ns]
     messages = messages[:, col_order]
 
-    # return messages
-    
     # Add original message as feature for all referential order types (2, 3, 4)
     messages = add_orig_msg_features(
         messages,
