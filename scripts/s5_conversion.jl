@@ -374,8 +374,8 @@ function main()
     book = process_book(book, price_levels)
 
     # Save the LOBSTER version
-    events_output = string(directory, "message", events_name[7:end], "_proc_.npy")
-    snapshots_output = string(directory, "orderbook", snapshots_name[10:end], "_proc_.npy")
+    events_output = string(directory, "message", events_name[7:end], "_proc.npy")
+    snapshots_output = string(directory, "orderbook", snapshots_name[10:end], "_proc.npy")
 
     npzwrite(events_output, Matrix(msgs))
     npzwrite(snapshots_output, book)
