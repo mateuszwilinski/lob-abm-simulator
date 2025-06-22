@@ -314,6 +314,7 @@ function main()
     price_levels = try parse(Int64, ARGS[5]) catch e 500 end
     directory = try ARGS[6] catch e "../results/" end
     na_val = try ARGS[7] catch e "-9999" end
+    time_unit = try parse(Int64, ARGS[8]) catch e 1 end
 
     na_val = parse(Int64, na_val)
 
@@ -354,9 +355,10 @@ function main()
     snapshots = snapshots[.!executed_limit_orders_id, :]
     events = events[.!executed_limit_orders_id, :]
 
-    # Convert price to Int64
+    # Convert price to Int64 and time to seconds (Float64)
     replace!(events.price, NaN => na_val / 10000)
     events.price = round.(Int64, events.price * 10000)
+    events.time /= time_unit
     for i in 1:2:size(snapshots)[2]  # TODO: check efficiency and potential improvements
         ids = isnan.(snapshots[:, i])
         if i % 4 == 1
