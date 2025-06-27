@@ -42,13 +42,13 @@ function parse_commandline()
             help = "save snapshots? (only with --save_events)"
             action = :store_true
         "--levels"
-            help = "number of levels in the order book"
+            help = "number of levels in the order book snapshot"
             arg_type = Int
             default = 5
         "--end_time", "-e"
             help = "simulation length"
             arg_type = Int
-            default = 360000
+            default = 36*10^6
         "--mm1"
             help = "number of MarketMaker(1) agents"
             arg_type = Int
