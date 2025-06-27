@@ -192,7 +192,7 @@ function main()
         filename = string(args["dir"], "events_simple_", seed, "_", experiment, ".csv")
         save_events_to_csv(simulation_outcome["events"], filename)
     end
-    println(mid_price[10000:10000:end])
+    println(mid_price[(end-5):end])
     # println(mid_price)
 end
 
