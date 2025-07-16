@@ -143,7 +143,7 @@ function msgs_to_neigbors(agent::NetTrader, msg::Dict)
                 response["recipient"] = i
                 response["activation_time"] += activation_time_diff
                 response["info"] = true
-                response["activation_priority"] = rand(2:2000000)
+                response["activation_priority"] = rand(2:2000000000000)
                 push!(msgs, response)
             end
         end
