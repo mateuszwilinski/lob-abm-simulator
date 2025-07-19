@@ -60,7 +60,6 @@ function initiate!(agent::NetTrader, book::Book, params::Dict)
     
     mrkt_msg["info"] = nothing
     lmt_msg["info"] = nothing
-    cncl_msg["info"] = nothing
     
     msgs = Vector{Dict}()
     append!(msgs, [mrkt_msg, lmt_msg, cncl_msg])
