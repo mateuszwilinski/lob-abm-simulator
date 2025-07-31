@@ -61,6 +61,10 @@ function parse_commandline()
             help = "directory to save results"
             arg_type = String
             default = "../results/"
+        "--setting"
+            help = "agents parameters setting"
+            arg_type = String
+            default = "default"
     end
     return parse_args(s)
 end
@@ -96,7 +100,8 @@ function main()
 
     # Initiate agents
     agents_counts = [args["agents"]]
-    agents = initiate_agents(agents_params, agents_counts, agents_names)
+    agents_names = collect(keys(agents_params[args["setting"]]))
+    agents = initiate_agents(agents_params[args["setting"]], agents_counts, agents_names)
     n_agents = sum(values(agents_counts))
     agents_net = read_network(string("../data/nets/", args["net"], ".csv"))
     connect_agents!(agents, agents_net)
