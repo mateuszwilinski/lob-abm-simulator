@@ -3,6 +3,8 @@ using NPZ
 using CSV
 using DataFrames
 
+PRICE_SCALE = 10000
+
 """
     combine_order_executions(i, events)
 
@@ -52,7 +54,7 @@ function add_target_events!(events::DataFrame, snapshots::DataFrame, target::Int
 end
 
 """
-    process_book(b, price_levels)
+    process_book(b, mid_price, price_levels, tick_size)
 
 This function processes the order book data from LOBSTER format into a matrix format
 suitable for further analysis, where each row corresponds to a time step and each
@@ -60,13 +62,15 @@ column corresponds to a price level. It also calculates the mid-price difference
 in ticks and returns a DataFrame with the mid-price differences as the first column
 followed by the book data.
 """
-function process_book(b::DataFrame, price_levels::Int64)
-    # Mid-price rounded to nearest tick (100)
-    p_ref = round.((b[:, 1] .+ b[:, 3]) ./ 2, digits=-2)
-    
+function process_book(
+    b::DataFrame,
+    mid_price::Vector{Int64},
+    price_levels::Int64,
+    tick_size::Float64
+    )
     # Get price indices (every other column starting from 1st)
     b_prices = b[:, 1:2:end]  # columns 1, 3, 5, 7, ...
-    b_indices = div.((b_prices .- p_ref), 100)  # TODO: make it dependent on the tick_size
+    b_indices = div.((b_prices .- mid_price), (tick_size * PRICE_SCALE))
     b_indices = Int64.(b_indices .+ div(price_levels, 2))
     
     # Get volume data (every other column starting from 2nd)
@@ -78,7 +82,7 @@ function process_book(b::DataFrame, price_levels::Int64)
     end
     
     # Initialize the book matrix
-    mybook = zeros(Int32, size(b, 1), price_levels)
+    mybook = zeros(Int64, size(b, 1), price_levels)
     
     # Fill the book matrix
     for i in 1:size(b_indices, 1)
@@ -91,8 +95,8 @@ function process_book(b::DataFrame, price_levels::Int64)
     end
     
     # Calculate mid-price differences in ticks
-    mid_diff = div.(diff(vcat(p_ref[1], p_ref)), 100)  # Add first element to handle diff
-    mid_diff = convert(Vector{Int32}, mid_diff)
+    mid_diff = div.(diff(vcat(mid_price[1], mid_price)), (tick_size * PRICE_SCALE))
+    mid_diff = convert(Vector{Int64}, mid_diff)
     
     # Concatenate mid_diff as first column with mybook
     return hcat(mid_diff, mybook)
@@ -104,7 +108,7 @@ end
 This function retrieves the price range for a specific level in the order book.
 It returns a DataFrame with the maximum and minimum prices for that level.
 """
-function get_price_range_for_level(book::DataFrame, lvl::Int)
+function get_price_range_for_level(book::DataFrame, lvl::Int64)
     @assert lvl > 0 "Level must be greater than 0"
     @assert lvl <= div(size(book, 2), 4) "Level exceeds maximum available levels"
     
@@ -165,12 +169,17 @@ function filter_by_type(messages::DataFrame, book::DataFrame; allowed_event_type
 end
 
 """
-    process_msgs(messages, book, na_val)
+    process_msgs(messages, mid_price, na_val, tick_size)
 
 This function processes the messages, adding necessary columns and transforming
 the data into a format suitable for further analysis.
 """
-function process_msgs(messages::DataFrame, book::DataFrame, na_val::Int64)
+function process_msgs(
+    messages::DataFrame,
+    mid_price::Vector{Int64},
+    na_val::Int64,
+    tick_size::Float64
+    )
     # TIME
     time_diff = diff(vcat(messages.time[1], messages.time))  # Handle first element for diff
     
@@ -194,18 +203,13 @@ function process_msgs(messages::DataFrame, book::DataFrame, na_val::Int64)
     # PRICE
     messages[!, :price_abs] = messages.price  # keep absolute price for later (simulator)
     
-    # Mid-price reference, rounded down to nearest tick_size
-    tick_size = 100  # TODO: make it dependent on the tick_size
-    mid_prices = (book[:, 1] .+ book[:, 3]) ./ 2
-    p_ref = vcat(mid_prices[1], mid_prices[1:end-1])  # Shift operation
-    p_ref = Int64.(div.(p_ref, tick_size) .* tick_size)  # TODO: Is there a more elegant way?
-    
     # Process prices
-    messages[!, :price] = process_price(messages.price, p_ref, -99900, 99900)
+    p_ref = vcat(mid_price[1], mid_price[1:end-1])
+    messages[!, :price] = process_price(messages.price, p_ref, -99900, 99900, tick_size)
+    messages.price[messages.price_abs .== na_val] .= na_val
     
     # Remove first row
     messages = messages[2:end, :]
-    messages[!, :price] = Int64.(messages.price)
     
     # DIRECTION
     messages[!, :dir] = Int64.((messages.dir .+ 1) ./ 2)
@@ -222,7 +226,7 @@ function process_msgs(messages::DataFrame, book::DataFrame, na_val::Int64)
         nan_val = na_val
     )
     
-    @assert size(messages, 1) + 1 == size(book, 1) "Length of messages (-1) and book states don't align"
+    @assert size(messages, 1) + 1 == size(mid_price, 1) "Length of messages (-1) and book states don't align"
     
     return messages
 end
@@ -237,8 +241,9 @@ function process_price(
     p::Vector{Int64},
     p_ref::Vector{Int64},
     p_lower_trunc::Int64,
-    p_upper_trunc::Int64
-)
+    p_upper_trunc::Int64,
+    tick_size::Float64
+    )
     # Encode prices relative to (previous) reference price
     p = p .- p_ref
     
@@ -247,9 +252,9 @@ function process_price(
     p[p .< p_lower_trunc] .= p_lower_trunc
     
     # Scale prices to min ticks size differences
-    p ./= 100  # TODO: make it dependent on the tick_size
+    p ./= (tick_size * PRICE_SCALE)
 
-    return p
+    return Int64.(p)
 end
 
 """
@@ -292,11 +297,32 @@ function add_orig_msg_features(
     end
 
     m_changes_ = select(m_changes, Not(:original_index))
-    m_changes_ = coalesce.(m_changes_, -9999)
+    m_changes_ = coalesce.(m_changes_, nan_val)
 
     m_result[m_changes.original_index, :] = m_changes_
     
     return m_result
+end
+
+"""
+    compute_mid_price
+
+Compute mid price based on the book. The value is rounded to the nearest
+tick and takes previous value if best bid or ask are empty.
+"""
+function compute_mid_price(book::DataFrame, tick_size::Float64)
+    # Compute mid-price as the average of the best bid and ask prices
+    mid_price = (book[:, 1] .+ book[:, 3]) ./ 2
+    # Round it to the nearest tick size
+    mid_price = round.(mid_price ./ tick_size) .* tick_size
+    # if mid_price is NaN, replace with previous value
+    for i in 2:length(mid_price)
+        if isnan(mid_price[i])
+            mid_price[i] = mid_price[i-1]
+        end
+    end
+    mid_price = round.(Int64, mid_price * PRICE_SCALE)
+    return mid_price
 end
 
 """
@@ -356,9 +382,10 @@ function main()
     events = events[.!executed_limit_orders_id, :]
 
     # Convert price to Int64 and time to seconds (Float64)
-    replace!(events.price, NaN => na_val / 10000)
-    events.price = round.(Int64, events.price * 10000)
+    replace!(events.price, NaN => na_val / PRICE_SCALE)
+    events.price = round.(Int64, events.price * PRICE_SCALE)
     events.time /= time_unit
+    mid_price = compute_mid_price(snapshots, tick_size)
     for i in 1:2:size(snapshots)[2]  # TODO: check efficiency and potential improvements
         ids = isnan.(snapshots[:, i])
         if i % 4 == 1
@@ -366,14 +393,14 @@ function main()
         elseif i % 4 == 3
             snapshots[ids, i] .= -999999.9999
         end
-        snapshots[!, i] = round.(Int64, snapshots[!, i] * 10000)
+        snapshots[!, i] = round.(Int64, snapshots[!, i] * PRICE_SCALE)
     end
 
     # Process messages and book
     # events, snapshots = filter_by_lvl(events, snapshots, 10)
     msgs, book = filter_by_type(events, snapshots; allowed_event_types=[0, 1, 2, 3, 4])
-    msgs = process_msgs(msgs, book, na_val)
-    book = process_book(book, price_levels)
+    msgs = process_msgs(msgs, mid_price, na_val, tick_size)
+    book = process_book(book, mid_price, price_levels, tick_size)
 
     # Save the LOBSTER version
     events_output = string(directory, "message", events_name[7:end], "_proc.npy")
