@@ -23,30 +23,19 @@ function combine_order_executions(i::Int64, events::DataFrame)
 end
 
 """
-    add_target_events!(events, snapshots, target)
+    add_volume_from_executions!(events, snapshots)
 
-This function modifies the `events` and `snapshots` DataFrames to mark
-events related to a specific target agent. It combines order executions
-in order to mark limit and market orders, which triggered executions
-and were send by the target agent.
+This function modifies the `events` and `snapshots` DataFrames to compute
+the total size of orders that were executed in multiple parts and add it as
+the volume for the crossing order.
 """
-function add_target_events!(events::DataFrame, snapshots::DataFrame, target::Int64)
-    e = 1
+function add_volume_from_executions!(events::DataFrame, snapshots::DataFrame)
+    e = 2  # first event cannot be an order with executions
     while e <= size(events)[1]
-        if events.agent[e] == target
-            if (events.type[e] == 0) || (events.type[e] == 1)
-                full_size, k = combine_order_executions(e, events)
-                if k > 0
-                    insert!(events, e-k, events[e, :])
-                    insert!(snapshots, e-k, snapshots[e-k-1, :])
-                    events.size[e-k] = full_size
-                    events.target[e-k] = 1
-                    e += 1
-                else
-                    events.target[e] = 1
-                end
-            elseif (events.type[e] == 2) || (events.type[e] == 3)
-                events.target[e] = 1
+        if (events.type[e] == 0) || (events.type[e] == 1)
+            full_size, k = combine_order_executions(e, events)
+            if k > 0
+                events.size[e] = full_size
             end
         end
         e += 1
@@ -215,7 +204,7 @@ function process_msgs(
     messages[!, :dir] = Int64.((messages.dir .+ 1) ./ 2)
     
     # Change column order
-    col_order = [:target, :id, :type, :dir, :price_abs, :price,
+    col_order = [:agent, :id, :type, :dir, :price_abs, :price,
                  :size, :delta_t_s, :delta_t_ns, :time_s, :time_ns]
     messages = messages[:, col_order]
 
@@ -335,12 +324,11 @@ function main()
     # Get the names of the files from the command line
     events_name = try ARGS[1] catch e "events_simple_1_1" end
     snapshots_name = try ARGS[2] catch e "snapshots_simple_1_1" end
-    target = try parse(Int64, ARGS[3]) catch e 0 end
-    tick_size = try parse(Float64, ARGS[4]) catch e 0.01 end
-    price_levels = try parse(Int64, ARGS[5]) catch e 500 end
-    directory = try ARGS[6] catch e "../results/" end
-    na_val = try ARGS[7] catch e "-9999" end
-    time_unit = try parse(Int64, ARGS[8]) catch e 1 end
+    tick_size = try parse(Float64, ARGS[3]) catch e 0.01 end
+    price_levels = try parse(Int64, ARGS[4]) catch e 500 end
+    directory = try ARGS[5] catch e "../results/" end
+    na_val = try ARGS[6] catch e "-9999" end
+    time_unit = try parse(Int64, ARGS[7]) catch e 1 end
 
     na_val = parse(Int64, na_val)
 
@@ -363,23 +351,13 @@ function main()
     end
     rename!(snapshots, snapshots_columns)
 
-    # Add the target column and mark the events related to the target agent
-    events[!, "target"] = zeros(Int64, size(events)[1])
-    add_target_events!(events, snapshots, target)
+    # Get rid of the executions and add the volume from executions to the crossing orders
+    add_volume_from_executions!(events, snapshots)
+    snapshots = snapshots[events.type .!= 4, :]
+    events = events[events.type .!= 4, :]
 
     # Select only the LOBSTER columns
-    events = select(events, [:target, :time, :type, :id, :size, :price, :dir])
-
-    # Get rid of market orders (excluding those sent by the target agent)
-    market_orders_id = (events.type .== 0) .& (events.target .== 0)
-    snapshots = snapshots[.!market_orders_id, :]
-    events = events[.!market_orders_id, :]
-
-    # Get rid of immediately executed limit orders
-    # TODO: what about not-fully executed limit orders from target agent?
-    executed_limit_orders_id = (events.type .== 1) .& (events.size .== 0) .& (events.target .== 0)
-    snapshots = snapshots[.!executed_limit_orders_id, :]
-    events = events[.!executed_limit_orders_id, :]
+    events = select(events, [:agent, :time, :type, :id, :size, :price, :dir])
 
     # Convert price to Int64 and time to seconds (Float64)
     replace!(events.price, NaN => na_val / PRICE_SCALE)
