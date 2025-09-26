@@ -8,6 +8,7 @@ import Random
 include("../src/orders.jl")
 include("../src/books.jl")
 include("../src/market_state.jl")
+include("../src/agents/budget.jl")
 include("../src/agents.jl")
 include("../src/saving_data.jl")
 include("../src/handling_order.jl")
