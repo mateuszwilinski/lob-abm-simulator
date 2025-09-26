@@ -3,6 +3,7 @@ using Test
 
 include("../src/orders.jl")
 include("../src/books.jl")
+include("../src/agents/budget.jl")
 include("../src/agents.jl")
 include("../src/agents/market_taker.jl")
 include("../src/handling_order.jl")
