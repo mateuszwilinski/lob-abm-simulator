@@ -15,7 +15,8 @@ function NetTrader(
     cancel_rate::F,
     sigma::F,
     size::T,
-    size_sigma::F
+    size_sigma::F,
+    budget::Budget{T, F}
     ) where {T <: Integer, F <: Real}
     return NetTrader(
         id,
@@ -27,7 +28,8 @@ function NetTrader(
         cancel_rate,
         sigma,
         size,
-        size_sigma
+        size_sigma,
+        budget
         )
 end
 
@@ -79,48 +81,59 @@ function action!(agent::NetTrader, book::Book, agents::Dict{Int64, Agent},
     # agent trades
     if msg["action"] == "MARKET_ORDER"
         simulation["last_id"] += 1
-        order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
+        expected_size = round(Int64, max(1, randn() * agent.size_sigma + agent.size))
         if isnothing(msg["info"])
-            order = MarketOrder(order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol)
             push!(msgs, self_msg(msg, agent.market_rate))
-            msg["is_bid"] = order.is_bid
+            side = rand(Bool)
         else
-            order = MarketOrder(order_size, msg["is_bid"], simulation["last_id"], agent.id, book.symbol)
+            side = msg["is_bid"]
         end
-        append!(msgs, msgs_to_neigbors(agent, msg))
-
-        matching_msgs = pass_order!(book, order, agents, simulation, params)
-        append!(msgs, matching_msgs)
+        order_size = available_budget(agent.budget, side, book, expected_size, Inf)
+        if order_size >= 1
+            msg["is_bid"] = side
+            append!(msgs, msgs_to_neigbors(agent, msg))
+            order = MarketOrder(order_size, side, simulation["last_id"], agent.id, book.symbol)
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
+            update_budget!(agent.budget, order, matching_msgs)
+            append!(msgs, matching_msgs)
+        end
     elseif msg["action"] == "LIMIT_ORDER"
         simulation["last_id"] += 1
+        expected_size = round(Int64, max(1, randn() * agent.size_sigma + agent.size))
         price = mid_price(book)
         if isnan(price)
             price = params["fundamental_dynamics"][simulation["current_time"]]
         end
         price += randn() * agent.sigma
-        order_size = round(Int64, max(1, randn()*agent.size_sigma + agent.size))
-        if isnothing(msg["info"])  # TODO: if the side is known, it should affect the price
-            order = LimitOrder(price, order_size, rand(Bool), simulation["last_id"], agent.id, book.symbol;
-                               tick_size=book.tick_size)
+        price = round_to_tick(price, book.tick_size)  # TODO: not most elegent, but should work
+        if isnothing(msg["info"])  # TODO: if the side is known, it should affect the price (?)
             push!(msgs, self_msg(msg, agent.limit_rate))
-            msg["is_bid"] = order.is_bid
+            side = rand(Bool)
         else
-            order = LimitOrder(price, order_size, msg["is_bid"], simulation["last_id"], agent.id, book.symbol;
-                               tick_size=book.tick_size)
+            side = msg["is_bid"]
         end
-        append!(msgs, msgs_to_neigbors(agent, msg))
-
-        matching_msgs = pass_order!(book, order, agents, simulation, params)
-        append!(msgs, matching_msgs)
+        order_size = available_budget(agent.budget, side, book, expected_size, price)
+        if order_size >= 1
+            msg["is_bid"] = side
+            append!(msgs, msgs_to_neigbors(agent, msg))
+            order = LimitOrder(price, order_size, side, simulation["last_id"], agent.id, book.symbol;
+                               tick_size=book.tick_size)
+            matching_msgs = pass_order!(book, order, agents, simulation, params)
+            update_budget!(agent.budget, order, matching_msgs)
+            append!(msgs, matching_msgs)
+        end
     elseif msg["action"] == "CANCEL_ORDER"
         if !isempty(agent.orders)
             order_id = rand(keys(agent.orders))
             order = agent.orders[order_id]
+            
+            update_budget!(agent.budget, order)
             cancel_order!(order, book, agent, simulation, params)
         end
         push!(msgs, self_msg(msg, agent.cancel_rate))
     elseif msg["action"] == "UPDATE_ORDER"
         # that is the only case when net trader does not send a new message
+        update_budget!(agent.budget, msg)
     else
         throw(error("Unknown action for a Net Trader."))
     end

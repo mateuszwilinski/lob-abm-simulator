@@ -263,6 +263,9 @@ function process_execution_information!(
     msg["action"] = "UPDATE_ORDER"
     msg["order_id"] = passive.id
     msg["order_size"] = get_size(passive)
+    msg["is_bid"] = passive.is_bid
+    msg["exec_size"] = execution_size
+    msg["exec_price"] = passive.price
 
     # save event if requested
     if params["save_events"]

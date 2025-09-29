@@ -84,6 +84,7 @@ struct NetTrader{T <: Integer, F <: Real} <: Agent
     sigma::F
     size::T
     size_sigma::F
+    budget::Budget
 end
 
 include("agents/net_trader.jl")
