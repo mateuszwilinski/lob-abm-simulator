@@ -1,7 +1,7 @@
 
 agents_params = Dict(
     "default" => Dict( # info_rate, limit_rate, market_rate, cancel_rate, sigma, size, size_sigma, budget
-                    "NetTrader" => (1000.0, 5000.0, 20000.0, 40000.0, 2.0, 5, 1.5, Budget(500, 50000.0))
+                    "NetTrader" => (1000.0, 5000.0, 20000.0, 40000.0, 2.0, 5, 1.5, Budget(500000, 50000000.0))
                     ),
     "budget" => Dict(
                     "NetTrader" => (1000.0, 5000.0, 20000.0, 40000.0, 2.0, 5, 1.5, Budget(2, 200.0))
