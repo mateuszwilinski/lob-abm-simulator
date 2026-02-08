@@ -8,6 +8,7 @@ import Random
 include("../src/orders.jl")
 include("../src/books.jl")
 include("../src/market_state.jl")
+include("../src/agents/budget.jl")
 include("../src/agents.jl")
 include("../src/saving_data.jl")
 include("../src/handling_order.jl")
@@ -143,9 +144,9 @@ function main()
     params["initial_time"] = 1  # Initial time cannot be zero or negative.
     params["fundamental_price"] = 100.0
     params["fundamental_dynamics"] = repeat([params["fundamental_price"]], params["end_time"])
-    # params["fundamental_dynamics"][Int(params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
-    # params["fundamental_dynamics"][Int(params["end_time"] / 2):end] .= 1.0 * params["fundamental_price"]
-    # params["fundamental_dynamics"][Int(3 * params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
+    params["fundamental_dynamics"][Int(params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
+    params["fundamental_dynamics"][Int(params["end_time"] / 2):end] .= 1.0 * params["fundamental_price"]
+    params["fundamental_dynamics"][Int(3 * params["end_time"] / 4):end] .= 0.7 * params["fundamental_price"]
     params["init_volume"] = 100
     params["init_book_sigma"] = 4.0
 
